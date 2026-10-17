@@ -19,6 +19,7 @@ class HealthResponse(BaseModel):
 
 
 @router.get("/health", response_model=HealthResponse)
+@router.get("/api/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
     data_dir = request.app.state.settings.data_dir
     return HealthResponse(

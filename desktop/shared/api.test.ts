@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IPC } from './api';
+import { IPC } from './api.js';
 
 describe('shared/api IPC channels', () => {
   it('defines the required IPC channels', () => {

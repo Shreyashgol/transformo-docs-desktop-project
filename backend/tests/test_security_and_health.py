@@ -13,6 +13,22 @@ def test_health_ok_with_token(client, auth, settings):
     assert body["data_dir_writable"] is True
 
 
+def test_api_health_ok_with_token(client, auth, settings):
+    res = client.get("/api/health", headers=auth)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"] == "ok"
+
+
+def test_api_version_ok_with_token(client, auth):
+    res = client.get("/api/version", headers=auth)
+    assert res.status_code == 200
+    body = res.json()
+    assert body["version"] == __version__
+    assert body["api_version"] == API_VERSION
+    assert body["name"] == "Transformo Docs Backend"
+
+
 def test_missing_token_rejected(client):
     assert client.get("/health").status_code == 401
 
