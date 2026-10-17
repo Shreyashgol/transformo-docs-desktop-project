@@ -1,0 +1,36 @@
+PHASE 07 — RELEASE READINESS AUDIT
+
+Perform a thorough audit of Transformo Docs before production packaging.
+
+1. Review the full source code and identify incomplete features, placeholder logic, security problems, and error-handling gaps.
+2. Run all existing frontend and backend tests.
+3. Add integration tests for:
+   - document import and extraction
+   - SQLite persistence
+   - document search
+   - summary generation using a mocked provider
+   - structured extraction and schema validation
+   - JSON and CSV exports
+4. Add tests for malformed uploads, oversized files, missing credentials, failed AI requests, and database errors.
+5. Review Electron security:
+   - contextIsolation enabled
+   - nodeIntegration disabled
+   - restricted preload API
+   - validated IPC messages
+   - no arbitrary shell execution from renderer content
+6. Review backend security:
+   - safe file handling
+   - upload size restrictions
+   - parameterized SQL
+   - safe error responses
+   - bounded processing and timeouts
+7. Verify secrets are excluded from Git, frontend bundles, logs, and distributable resources.
+8. Verify the AI consent and privacy messaging is clear.
+9. Verify user documents and the SQLite database are stored outside the installation directory.
+10. Test repeated imports, application restarts, failed backend startup, and shutdown behavior.
+11. Check dependency vulnerabilities using available tools and report findings. Do not automatically upgrade dependencies in ways that break compatibility.
+12. Fix issues introduced by the application code and rerun the relevant tests.
+
+Create docs/RELEASE_CHECKLIST.md containing verified checks, unresolved issues, and test results.
+
+Do not begin packaging until the application passes its essential workflow tests. Do not hide or misreport failures. Stop after the audit.

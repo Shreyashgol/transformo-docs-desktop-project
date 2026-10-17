@@ -1,0 +1,4 @@
+# Runtime dependencies (bounded to tested major/minor ranges)
+fastapi>=0.143,<0.144
+uvicorn>=0.54,<0.55
+pydantic>=2.14,<3

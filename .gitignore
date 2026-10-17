@@ -1,0 +1,55 @@
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.key
+*.mobileprovision
+
+# Node / Electron
+node_modules/
+desktop/dist/
+desktop/dist-electron/
+desktop/out/
+*.tsbuildinfo
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Backend packaging
+backend/build/
+backend/dist/
+
+# Local runtime data (dev data dir, databases, imported documents)
+.data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Release artifacts
+release/
+*.dmg
+*.blockmap
+
+# Logs
+logs/
+*.log

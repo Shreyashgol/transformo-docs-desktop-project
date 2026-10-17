@@ -1,0 +1,88 @@
+@import 'tailwindcss';
+
+/* Semantic design tokens. Utilities such as bg-surface / text-muted reference these
+   variables, so the dark-mode overrides below restyle the whole app. */
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, Menlo, monospace;
+
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-sunken: #f1f3f6;
+  --color-sidebar: #eef1f5;
+  --color-border: #e2e6ec;
+  --color-ink: #111827;
+  --color-muted: #5b6474;
+  --color-subtle: #8a93a3;
+
+  --color-accent: #3b5bdb;
+  --color-accent-hover: #3249c2;
+  --color-accent-soft: #e8edff;
+  --color-on-accent: #ffffff;
+
+  --color-success: #1f8a4c;
+  --color-success-soft: #e3f5ea;
+  --color-warning: #a15c00;
+  --color-warning-soft: #fff3dc;
+  --color-danger: #c92a2a;
+  --color-danger-soft: #fdeaea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #14161a;
+    --color-surface: #1b1e24;
+    --color-sunken: #111317;
+    --color-sidebar: #181a1f;
+    --color-border: #2b3039;
+    --color-ink: #eef0f4;
+    --color-muted: #a3abb9;
+    --color-subtle: #757e8e;
+
+    --color-accent: #6d8cff;
+    --color-accent-hover: #87a0ff;
+    --color-accent-soft: #232c4a;
+    --color-on-accent: #0b1020;
+
+    --color-success: #4cc283;
+    --color-success-soft: #173325;
+    --color-warning: #f0b45a;
+    --color-warning-soft: #3a2b12;
+    --color-danger: #ff7b7b;
+    --color-danger-soft: #3d1b1b;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Allow selecting real content (text, values), not chrome. */
+.selectable {
+  user-select: text;
+}
+
+/* macOS hidden-inset title bar: drag the window from the top strip. */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+.titlebar-drag button,
+.titlebar-drag a {
+  -webkit-app-region: no-drag;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
