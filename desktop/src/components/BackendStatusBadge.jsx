@@ -1,14 +1,13 @@
-import type { BackendState } from '../../shared/api';
-import { Badge } from './ui';
+import { Badge } from './ui.jsx';
 
-const LABELS: Record<BackendState, { text: string; tone: 'success' | 'warning' | 'danger' | 'neutral' }> = {
+const LABELS = {
   ready: { text: 'Engine ready', tone: 'success' },
   starting: { text: 'Starting engine…', tone: 'warning' },
   failed: { text: 'Engine unavailable', tone: 'danger' },
   stopped: { text: 'Engine stopped', tone: 'neutral' },
 };
 
-export function BackendStatusBadge({ state }: { state: BackendState | undefined }) {
+export function BackendStatusBadge({ state }) {
   const label = LABELS[state ?? 'starting'];
   return (
     <span role="status" aria-live="polite">

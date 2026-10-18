@@ -1,5 +1,5 @@
 import { FileText, Brain, Clock, BarChart3 } from 'lucide-react';
-import { Card } from '../components/ui';
+import { Card } from '../components/ui.jsx';
 
 const stats = [
   { label: 'Total Documents', value: '0', icon: FileText, color: 'text-accent' },
@@ -77,11 +77,6 @@ function QuickAction({
   title,
   description,
   disabled,
-}: {
-  icon: typeof FileText;
-  title: string;
-  description: string;
-  disabled?: boolean;
 }) {
   return (
     <button

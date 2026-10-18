@@ -1,5 +1,5 @@
 import { Brain, FileSearch, Sparkles } from 'lucide-react';
-import { Card } from '../components/ui';
+import { Card } from '../components/ui.jsx';
 
 export function AIWorkspacePage() {
   return (
@@ -47,11 +47,6 @@ function FeatureCard({
   title,
   description,
   status,
-}: {
-  icon: typeof Brain;
-  title: string;
-  description: string;
-  status: string;
 }) {
   return (
     <Card>

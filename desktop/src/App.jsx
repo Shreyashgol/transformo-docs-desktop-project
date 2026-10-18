@@ -1,22 +1,18 @@
 import { useState } from 'react';
-import { BackendFailure } from './components/BackendFailure';
-import { Sidebar, type PageId } from './components/Sidebar';
-import { Spinner } from './components/ui';
-import { useBackendStatus } from './hooks/useBackendStatus';
-import { AIWorkspacePage } from './pages/AIWorkspacePage';
-import { DashboardPage } from './pages/DashboardPage';
-import { DocumentsPage } from './pages/DocumentsPage';
-import { OverviewPage } from './pages/OverviewPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { BackendFailure } from './components/BackendFailure.jsx';
+import { Sidebar } from './components/Sidebar.jsx';
+import { Spinner } from './components/ui.jsx';
+import { useBackendStatus } from './hooks/useBackendStatus.js';
+import { AIWorkspacePage } from './pages/AIWorkspacePage.jsx';
+import { DashboardPage } from './pages/DashboardPage.jsx';
+import { DocumentsPage } from './pages/DocumentsPage.jsx';
+import { OverviewPage } from './pages/OverviewPage.jsx';
+import { SettingsPage } from './pages/SettingsPage.jsx';
 
 function PageContent({
   page,
   status,
   onRestart,
-}: {
-  page: PageId;
-  status: NonNullable<ReturnType<typeof useBackendStatus>['status']>;
-  onRestart: () => Promise<void>;
 }) {
   switch (page) {
     case 'dashboard':
@@ -35,7 +31,7 @@ function PageContent({
 
 export default function App() {
   const { status, restart } = useBackendStatus();
-  const [page, setPage] = useState<PageId>('dashboard');
+  const [page, setPage] = useState('dashboard');
 
   let content;
   if (!status || status.state === 'starting' || status.state === 'stopped') {

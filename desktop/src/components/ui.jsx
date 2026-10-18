@@ -1,13 +1,11 @@
 import { LoaderCircle, X } from 'lucide-react';
-import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef } from 'react';
 
-export function cx(...classes: Array<string | false | null | undefined>): string {
+export function cx(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-
-const buttonVariants: Record<ButtonVariant, string> = {
+const buttonVariants = {
   primary: 'bg-accent text-on-accent hover:bg-accent-hover',
   secondary: 'bg-surface text-ink border border-border hover:bg-sunken',
   ghost: 'text-muted hover:bg-sunken hover:text-ink',
@@ -22,10 +20,6 @@ export function Button({
   className,
   disabled,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant;
-  busy?: boolean;
-  icon?: ReactNode;
 }) {
   return (
     <button
@@ -46,7 +40,7 @@ export function Button({
   );
 }
 
-export function Spinner({ size = 16, label }: { size?: number; label?: string }) {
+export function Spinner({ size = 16, label }) {
   return (
     <LoaderCircle
       size={size}
@@ -63,11 +57,6 @@ export function Card({
   actions,
   children,
   className,
-}: {
-  title?: ReactNode;
-  actions?: ReactNode;
-  children: ReactNode;
-  className?: string;
 }) {
   return (
     <section className={cx('rounded-xl border border-border bg-surface', className)}>
@@ -82,9 +71,7 @@ export function Card({
   );
 }
 
-type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent';
-
-const toneClasses: Record<Tone, string> = {
+const toneClasses = {
   neutral: 'bg-sunken text-muted',
   success: 'bg-success-soft text-success',
   warning: 'bg-warning-soft text-warning',
@@ -92,7 +79,7 @@ const toneClasses: Record<Tone, string> = {
   accent: 'bg-accent-soft text-accent',
 };
 
-export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
+export function Badge({ tone = 'neutral', children }) {
   return (
     <span
       className={cx(
@@ -105,7 +92,7 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
   );
 }
 
-export function DefinitionList({ items }: { items: Array<[string, ReactNode]> }) {
+export function DefinitionList({ items }) {
   return (
     <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-6 gap-y-2.5 text-sm">
       {items.map(([term, value]) => (
@@ -128,14 +115,8 @@ export function Dialog({
   title,
   children,
   className,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  children: ReactNode;
-  className?: string;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const ref = useRef(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -175,11 +156,6 @@ export function EmptyState({
   title,
   description,
   action,
-}: {
-  icon: typeof LoaderCircle;
-  title: string;
-  description?: string;
-  action?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -194,4 +170,3 @@ export function EmptyState({
     </div>
   );
 }
-

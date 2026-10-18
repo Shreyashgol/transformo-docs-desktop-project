@@ -21,7 +21,7 @@ Built for **PS #95 — Transformo Docs Application: Empowering Machine-Readable 
 | Layer | Technology |
 |---|---|
 | Desktop shell | Electron, electron-builder |
-| UI | React, TypeScript, Vite, Tailwind CSS |
+| UI | React, JavaScript, Vite, Tailwind CSS |
 | Backend | Python 3.12, FastAPI, Pydantic |
 | Storage | SQLite (FTS5) |
 | Parsing | PyMuPDF, python-docx |
@@ -75,9 +75,9 @@ cd backend
 source .venv/bin/activate
 pytest
 
-# Run desktop typecheck and tests
+# Run desktop lint and tests
 cd ../desktop
-npm run typecheck
+npm run lint
 npm run test
 
 # Build production bundle for desktop

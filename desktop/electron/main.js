@@ -5,19 +5,19 @@ import { resolveBackendCommand } from './backend-command.js';
 import { BackendManager } from './backend-manager.js';
 import { registerIpcHandlers } from './ipc.js';
 import { createFileLogger } from './logger.js';
-import { isSafeExternalUrl, isTrustedRendererUrl, type TrustConfig } from './trust.js';
+import { isSafeExternalUrl, isTrustedRendererUrl } from './trust.js';
 
 const APP_NAME = 'Transformo Docs';
 const devServerUrl = app.isPackaged ? undefined : process.env.VITE_DEV_SERVER_URL;
-const here = import.meta.dirname; // dist-electron/electron
+const here = import.meta.dirname;
 
 // Keep development data separate from an installed copy of the app.
 app.setName(APP_NAME);
 app.setPath('userData', path.join(app.getPath('appData'), devServerUrl ? `${APP_NAME} Dev` : APP_NAME));
 
-const trust: TrustConfig = {
+const trust = {
   devServerUrl,
-  rendererIndexPath: path.join(here, '..', '..', 'dist', 'index.html'),
+  rendererIndexPath: path.join(here, '..', 'dist', 'index.html'),
 };
 
 const log = createFileLogger(path.join(app.getPath('userData'), 'logs'));
@@ -41,7 +41,7 @@ backend.on('status', (status) => {
   }
 });
 
-function applySecurityPolicies(): void {
+function applySecurityPolicies() {
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
 
@@ -57,7 +57,7 @@ function applySecurityPolicies(): void {
   });
 }
 
-function createWindow(): BrowserWindow {
+function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
@@ -109,7 +109,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   // Ctrl+C / kill of the dev Electron process should still stop the backend cleanly.
-  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  for (const signal of ['SIGINT', 'SIGTERM']) {
     process.on(signal, () => app.quit());
   }
 

@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { BackendStatus } from '../../shared/api';
 
 /** Live backend status pushed from the main process, plus a restart action. */
 export function useBackendStatus() {
-  const [status, setStatus] = useState<BackendStatus | null>(null);
+  const [status, setStatus] = useState(null);
 
   useEffect(() => {
     let active = true;

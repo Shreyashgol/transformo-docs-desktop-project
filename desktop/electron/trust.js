@@ -1,21 +1,18 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export interface TrustConfig {
-  /** Vite dev server URL in development, otherwise undefined. */
-  devServerUrl?: string;
-  /** Absolute path of the bundled renderer index.html in production. */
-  rendererIndexPath: string;
-}
-
 /**
  * True only for the application's own renderer: the dev server origin in development,
  * or the exact bundled index.html file in production. Used to validate IPC senders and
  * navigation targets.
+ *
+ * @param {string | undefined} rawUrl
+ * @param {{ devServerUrl?: string; rendererIndexPath: string }} cfg
+ * @returns {boolean}
  */
-export function isTrustedRendererUrl(rawUrl: string | undefined, cfg: TrustConfig): boolean {
+export function isTrustedRendererUrl(rawUrl, cfg) {
   if (!rawUrl) return false;
-  let url: URL;
+  let url;
   try {
     url = new URL(rawUrl);
   } catch {
@@ -32,8 +29,12 @@ export function isTrustedRendererUrl(rawUrl: string | undefined, cfg: TrustConfi
   }
 }
 
-/** External links may only open in the user's browser, and only over https. */
-export function isSafeExternalUrl(rawUrl: string): boolean {
+/**
+ * External links may only open in the user's browser, and only over https.
+ * @param {string} rawUrl
+ * @returns {boolean}
+ */
+export function isSafeExternalUrl(rawUrl) {
   try {
     return new URL(rawUrl).protocol === 'https:';
   } catch {

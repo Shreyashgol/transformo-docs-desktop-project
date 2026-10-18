@@ -4,21 +4,17 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
-  type LucideIcon,
 } from 'lucide-react';
-import type { BackendState } from '../../shared/api';
-import { BackendStatusBadge } from './BackendStatusBadge';
-import { cx } from './ui';
+import { BackendStatusBadge } from './BackendStatusBadge.jsx';
+import { cx } from './ui.jsx';
 
-export type PageId = 'dashboard' | 'documents' | 'ai-workspace' | 'settings' | 'overview';
-
-const NAV: Array<{ id: PageId; label: string; icon: LucideIcon }> = [
+const NAV = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'ai-workspace', label: 'AI Workspace', icon: Brain },
 ];
 
-const BOTTOM_NAV: Array<{ id: PageId; label: string; icon: LucideIcon }> = [
+const BOTTOM_NAV = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -26,10 +22,6 @@ export function Sidebar({
   page,
   onNavigate,
   backendState,
-}: {
-  page: PageId;
-  onNavigate: (page: PageId) => void;
-  backendState: BackendState | undefined;
 }) {
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-sidebar">
@@ -76,11 +68,6 @@ function NavButton({
   onClick,
   icon: Icon,
   label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: LucideIcon;
-  label: string;
 }) {
   return (
     <button

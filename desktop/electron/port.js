@@ -1,7 +1,7 @@
 import net from 'node:net';
 
 /** Ask the OS for a currently free loopback TCP port. */
-export function findFreePort(host = '127.0.0.1'): Promise<number> {
+export function findFreePort(host = '127.0.0.1') {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
     server.unref();

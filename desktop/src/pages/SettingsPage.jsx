@@ -1,10 +1,9 @@
 import { Info, KeyRound, Palette, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AppInfo } from '../../shared/api';
-import { Badge, Card, DefinitionList } from '../components/ui';
+import { Badge, Card, DefinitionList } from '../components/ui.jsx';
 
 export function SettingsPage() {
-  const [info, setInfo] = useState<AppInfo | null>(null);
+  const [info, setInfo] = useState(null);
 
   useEffect(() => {
     void window.transformo.app.getInfo().then(setInfo);

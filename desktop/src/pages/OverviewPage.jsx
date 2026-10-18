@@ -1,19 +1,15 @@
 import { RotateCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AppInfo, BackendHealth, BackendStatus } from '../../shared/api';
-import { BackendStatusBadge } from '../components/BackendStatusBadge';
-import { Badge, Button, Card, DefinitionList, Spinner } from '../components/ui';
+import { BackendStatusBadge } from '../components/BackendStatusBadge.jsx';
+import { Badge, Button, Card, DefinitionList, Spinner } from '../components/ui.jsx';
 
 export function OverviewPage({
   status,
   onRestart,
-}: {
-  status: BackendStatus;
-  onRestart: () => Promise<void>;
 }) {
-  const [info, setInfo] = useState<AppInfo | null>(null);
-  const [health, setHealth] = useState<BackendHealth | null>(null);
-  const [healthError, setHealthError] = useState<string | null>(null);
+  const [info, setInfo] = useState(null);
+  const [health, setHealth] = useState(null);
+  const [healthError, setHealthError] = useState(null);
   const [restarting, setRestarting] = useState(false);
 
   useEffect(() => {
@@ -21,7 +17,7 @@ export function OverviewPage({
   }, []);
 
   useEffect(() => {
-    if (status.state !== 'ready') return;
+    if (status?.state !== 'ready') return;
     let active = true;
     void window.transformo.backend.health().then((res) => {
       if (!active) return;
@@ -36,7 +32,7 @@ export function OverviewPage({
     return () => {
       active = false;
     };
-  }, [status.state, status.since]);
+  }, [status?.state, status?.since]);
 
   const restart = async () => {
     setRestarting(true);
@@ -62,14 +58,14 @@ export function OverviewPage({
           <Button
             onClick={restart}
             busy={restarting}
-            disabled={status.state === 'starting'}
+            disabled={status?.state === 'starting'}
             icon={<RotateCw size={14} />}
           >
             Restart engine
           </Button>
         }
       >
-        {status.state === 'ready' && health ? (
+        {status?.state === 'ready' && health ? (
           <DefinitionList
             items={[
               ['Status', <BackendStatusBadge key="s" state={status.state} />],
@@ -89,7 +85,7 @@ export function OverviewPage({
               ],
             ]}
           />
-        ) : status.state === 'ready' && healthError ? (
+        ) : status?.state === 'ready' && healthError ? (
           <p className="text-sm text-danger" role="alert">
             Health check failed: {healthError}
           </p>

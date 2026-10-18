@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { defineConfig } from 'vite';
 
 // The renderer has no network access of its own: all backend traffic goes through the
 // Electron main process over IPC. Development additionally needs inline scripts (React
@@ -23,7 +23,7 @@ const DEV_CSP = PROD_CSP.replace("script-src 'self'", "script-src 'self' 'unsafe
   "connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
 );
 
-function contentSecurityPolicy(): Plugin {
+function contentSecurityPolicy() {
   let csp = PROD_CSP;
   return {
     name: 'transformo-csp',

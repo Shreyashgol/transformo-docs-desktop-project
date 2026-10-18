@@ -1,5 +1,5 @@
 import { FileText, Search, Upload } from 'lucide-react';
-import { Button, Card } from '../components/ui';
+import { Button, Card } from '../components/ui.jsx';
 
 export function DocumentsPage() {
   return (
