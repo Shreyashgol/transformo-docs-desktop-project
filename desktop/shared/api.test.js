@@ -8,5 +8,9 @@ describe('shared/api IPC channels', () => {
     expect(IPC.backendRestart).toBe('backend:restart');
     expect(IPC.backendHealth).toBe('backend:health');
     expect(IPC.backendStatusChanged).toBe('backend:status-changed');
+    expect(IPC.documentsSelectAndImport).toBe('documents:select-and-import');
+    expect(IPC.documentsUploadBuffer).toBe('documents:upload-buffer');
+    expect(IPC.documentsList).toBe('documents:list');
+    expect(IPC.documentsGet).toBe('documents:get');
   });
 });

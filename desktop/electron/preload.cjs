@@ -20,6 +20,12 @@ const api = {
       };
     },
   },
+  documents: {
+    selectAndImport: () => invoke('documents:select-and-import'),
+    uploadBuffer: (data) => invoke('documents:upload-buffer', data),
+    list: () => invoke('documents:list'),
+    get: (docId) => invoke('documents:get', docId),
+  },
 };
 
 contextBridge.exposeInMainWorld('transformo', api);

@@ -1,21 +1,91 @@
-import { FileText, Brain, Clock, BarChart3 } from 'lucide-react';
-import { Card } from '../components/ui.jsx';
+import { BarChart3, Brain, Clock, FileText, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DocumentDetailModal } from '../components/DocumentDetailModal.jsx';
+import { Badge, Button, Card, EmptyState, Spinner } from '../components/ui.jsx';
 
-const stats = [
-  { label: 'Total Documents', value: '0', icon: FileText, color: 'text-accent' },
-  { label: 'AI Processed', value: '0', icon: Brain, color: 'text-success' },
-  { label: 'Recent Imports', value: '0', icon: Clock, color: 'text-warning' },
-  { label: 'Extractions', value: '0', icon: BarChart3, color: 'text-muted' },
-];
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
 
 export function DashboardPage() {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    window.transformo.documents.list().then((res) => {
+      if (!ignore) {
+        if (res.ok) setDocuments(res.data);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!ignore) setLoading(false);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const refreshDocuments = async () => {
+    const res = await window.transformo.documents.list();
+    if (res.ok) setDocuments(res.data);
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const res = await window.transformo.documents.selectAndImport();
+      if (res.ok && res.data.imported && res.data.imported.length > 0) {
+        await refreshDocuments();
+        setSelectedDoc(res.data.imported[0]);
+        setIsModalOpen(true);
+      }
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleViewDoc = async (id) => {
+    const res = await window.transformo.documents.get(id);
+    if (res.ok) {
+      setSelectedDoc(res.data);
+      setIsModalOpen(true);
+    }
+  };
+
+  const scannedCount = documents.filter((d) => d.is_scanned).length;
+
+  const stats = [
+    { label: 'Total Documents', value: String(documents.length), icon: FileText, color: 'text-accent' },
+    { label: 'AI Processed', value: '0', icon: Brain, color: 'text-success' },
+    { label: 'Scanned / Notice', value: String(scannedCount), icon: Clock, color: 'text-warning' },
+    { label: 'Extractions', value: '0', icon: BarChart3, color: 'text-muted' },
+  ];
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted">
-          A high-level overview of your document library and AI processing.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">
+            A high-level overview of your document library and machine-readable data.
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          icon={<Upload size={14} />}
+          onClick={handleImport}
+          busy={importing}
+        >
+          Import document
+        </Button>
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -34,63 +104,103 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <Card title="Recent activity">
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="rounded-full bg-sunken p-3 text-subtle">
-            <FileText size={24} aria-hidden />
+      <Card title="Recent activity" className="!p-0">
+        {loading ? (
+          <div className="flex h-36 items-center justify-center gap-2 text-sm text-muted">
+            <Spinner label="Loading activity" /> Loading activity…
           </div>
-          <p className="mt-3 text-sm font-medium">No activity yet</p>
-          <p className="mt-1 max-w-sm text-xs text-muted">
-            Import your first document to get started. Supported formats: PDF, DOCX, and TXT.
-          </p>
-        </div>
+        ) : documents.length === 0 ? (
+          <EmptyState
+            icon={FileText}
+            title="No activity yet"
+            description="Import your first document to get started. Supported formats: PDF, DOCX, and TXT."
+            action={
+              <Button
+                variant="primary"
+                icon={<Upload size={14} />}
+                onClick={handleImport}
+                busy={importing}
+              >
+                Import document
+              </Button>
+            }
+          />
+        ) : (
+          <div className="divide-y divide-border">
+            {documents.slice(0, 5).map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-sunken/50"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="rounded-lg bg-accent-soft p-1.5 text-accent">
+                    <FileText size={16} aria-hidden />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-ink">{doc.original_filename}</p>
+                    <p className="text-xs text-muted">
+                      {formatBytes(doc.file_size_bytes)} • {doc.page_count} {doc.page_count === 1 ? 'page' : 'pages'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge tone={doc.is_scanned ? 'warning' : 'success'}>
+                    {doc.is_scanned ? 'Scanned' : 'Ready'}
+                  </Badge>
+                  <Button
+                    onClick={() => handleViewDoc(doc.id)}
+                    className="!h-7 !px-2.5 !text-xs"
+                  >
+                    View
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card title="Quick actions">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <QuickAction
-            icon={FileText}
-            title="Import document"
-            description="Upload a PDF, DOCX, or TXT file"
-            disabled
-          />
-          <QuickAction
-            icon={Brain}
-            title="AI summary"
-            description="Generate an AI-powered summary"
-            disabled
-          />
-          <QuickAction
-            icon={BarChart3}
-            title="Extract fields"
-            description="Extract structured data from documents"
-            disabled
-          />
+          <button
+            type="button"
+            onClick={handleImport}
+            className="flex items-start gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:bg-sunken cursor-pointer"
+          >
+            <div className="rounded-md bg-accent-soft p-1.5 text-accent">
+              <FileText size={16} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Import document</p>
+              <p className="mt-0.5 text-xs text-muted">Select PDF, DOCX, or TXT file</p>
+            </div>
+          </button>
+          <div className="flex items-start gap-3 rounded-lg border border-border p-4 text-left opacity-60">
+            <div className="rounded-md bg-sunken p-1.5 text-muted">
+              <Brain size={16} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">AI summary</p>
+              <p className="mt-0.5 text-xs text-muted">Available in Phase 04</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-border p-4 text-left opacity-60">
+            <div className="rounded-md bg-sunken p-1.5 text-muted">
+              <BarChart3 size={16} aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Extract fields</p>
+              <p className="mt-0.5 text-xs text-muted">Available in Phase 05</p>
+            </div>
+          </div>
         </div>
       </Card>
-    </div>
-  );
-}
 
-function QuickAction({
-  icon: Icon,
-  title,
-  description,
-  disabled,
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      className="flex items-start gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <div className="rounded-md bg-accent-soft p-1.5 text-accent">
-        <Icon size={16} aria-hidden />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="mt-0.5 text-xs text-muted">{description}</p>
-      </div>
-    </button>
+      <DocumentDetailModal
+        doc={selectedDoc}
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </div>
   );
 }

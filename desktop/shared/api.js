@@ -11,4 +11,8 @@ export const IPC = {
   backendRestart: 'backend:restart',
   backendHealth: 'backend:health',
   backendStatusChanged: 'backend:status-changed',
+  documentsSelectAndImport: 'documents:select-and-import',
+  documentsUploadBuffer: 'documents:upload-buffer',
+  documentsList: 'documents:list',
+  documentsGet: 'documents:get',
 };

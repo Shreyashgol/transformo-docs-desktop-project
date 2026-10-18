@@ -97,8 +97,14 @@ export class BackendManager extends EventEmitter {
     }
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const detail =
-        body && typeof body === 'object' && 'detail' in body ? String(body.detail) : res.statusText;
+      let detail = res.statusText;
+      if (body && typeof body === 'object' && 'detail' in body) {
+        if (typeof body.detail === 'object' && body.detail !== null) {
+          detail = body.detail.message || JSON.stringify(body.detail);
+        } else {
+          detail = String(body.detail);
+        }
+      }
       throw new BackendError(detail, res.status);
     }
     return body;

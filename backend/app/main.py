@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import health, version
+from app.api import documents, health, version
 from app.config import Settings
 from app.security import LocalAuthMiddleware
 
@@ -21,4 +21,5 @@ def create_app(settings: Settings) -> FastAPI:
     app.add_middleware(LocalAuthMiddleware, token=settings.token, port=settings.port)
     app.include_router(health.router)
     app.include_router(version.router)
+    app.include_router(documents.router)
     return app
