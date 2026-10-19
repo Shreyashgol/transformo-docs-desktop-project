@@ -28,6 +28,12 @@ const api = {
     delete: (docId) => invoke('documents:delete', docId),
     stats: () => invoke('documents:stats'),
   },
+  ai: {
+    getSettings: () => invoke('ai:get-settings'),
+    setConsent: (consent) => invoke('ai:set-consent', consent),
+    generateSummary: (params) => invoke('ai:generate-summary', params),
+    getSummary: (docId) => invoke('ai:get-summary', docId),
+  },
 };
 
 contextBridge.exposeInMainWorld('transformo', api);

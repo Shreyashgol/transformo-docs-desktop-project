@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app import __version__
-from app.api import documents, health, version
+from app.api import ai, documents, health, version
 from app.config import Settings
 from app.security import LocalAuthMiddleware
 
@@ -18,8 +18,17 @@ def create_app(settings: Settings) -> FastAPI:
         openapi_url=None,
     )
     app.state.settings = settings
+
+    from app.ingestion.service import IngestionService
+    from app.ai.service import SummarizationService
+
+    ingestion_service = IngestionService(settings)
+    app.state.ingestion_service = ingestion_service
+    app.state.ai_service = SummarizationService(ingestion_service.repo)
+
     app.add_middleware(LocalAuthMiddleware, token=settings.token, port=settings.port)
     app.include_router(health.router)
     app.include_router(version.router)
     app.include_router(documents.router)
+    app.include_router(ai.router)
     return app

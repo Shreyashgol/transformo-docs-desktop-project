@@ -159,4 +159,58 @@ export function registerIpcHandlers(backend, trust) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
+
+  // AI Provider settings
+  handle(IPC.aiGetSettings, async () => {
+    try {
+      const settings = await backend.request('/api/ai/settings');
+      return { ok: true, data: settings };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Consent
+  handle(IPC.aiSetConsent, async (_event, consent) => {
+    try {
+      const res = await backend.request('/api/ai/consent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ consent: Boolean(consent) }),
+      });
+      return { ok: true, data: res };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Generate Summary
+  handle(IPC.aiGenerateSummary, async (_event, { docId, options, force }) => {
+    try {
+      const qs = force ? '?force=true' : '';
+      const summary = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/summary${qs}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options || {}),
+        },
+      );
+      return { ok: true, data: summary };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Get Cached Summary
+  handle(IPC.aiGetSummary, async (_event, docId) => {
+    try {
+      const summary = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/summary`,
+      );
+      return { ok: true, data: summary };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 }

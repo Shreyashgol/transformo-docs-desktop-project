@@ -17,4 +17,8 @@ export const IPC = {
   documentsGet: 'documents:get',
   documentsDelete: 'documents:delete',
   documentsStats: 'documents:stats',
+  aiGetSettings: 'ai:get-settings',
+  aiSetConsent: 'ai:set-consent',
+  aiGenerateSummary: 'ai:generate-summary',
+  aiGetSummary: 'ai:get-summary',
 };

@@ -11,7 +11,7 @@ Built for **PS #95 — Transformo Docs Application: Empowering Machine-Readable 
 - Import PDF, DOCX, and TXT files, with validation by extension, size, and file content
 - Text and metadata extraction (PyMuPDF, python-docx)
 - Local SQLite library with full-text search (FTS5)
-- AI summaries (configurable provider; Gemini first), with explicit privacy consent
+- AI summaries (Groq API using official SDK), with explicit privacy consent
 - Structured extraction (General / Invoice / Resume) validated against Pydantic schemas
 - JSON and CSV export
 - Distributed as a standalone macOS `.dmg`. End users do not need Python or Node.
@@ -25,7 +25,7 @@ Built for **PS #95 — Transformo Docs Application: Empowering Machine-Readable 
 | Backend | Python 3.12, FastAPI, Pydantic |
 | Storage | SQLite (FTS5) |
 | Parsing | PyMuPDF, python-docx |
-| AI | Provider abstraction; Gemini via `google-genai` |
+| AI | Provider abstraction; Groq API via official `groq` SDK |
 | Backend packaging | PyInstaller |
 
 ## Repository layout
@@ -53,6 +53,10 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
+
+# Configure your Groq API key in backend/.env:
+cp .env.example .env
+# Edit .env and set your GROQ_API_KEY (e.g. gsk_...)
 
 # 2. Desktop app dependencies
 cd ../desktop
