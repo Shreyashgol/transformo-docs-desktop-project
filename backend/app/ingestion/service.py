@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 from pathlib import Path
-import zipfile
 
 from app.config import Settings
+from app.db.connection import connect_db, get_db_path
+from app.db.repository import DocumentListItem, DocumentRepository, PaginatedDocuments
+from app.db.schema import init_db
 from app.extraction.registry import extract_document
 from app.ingestion.models import DocumentDetail, DocumentMetadata
 
@@ -72,7 +73,7 @@ def validate_file_content(data: bytes, ext: str) -> None:
                 "File has .docx extension but is not a valid ZIP package."
             )
     elif ext == ".txt":
-        # Plain text should not contain excessive null bytes indicative of arbitrary binary
+        # Plain text should not contain binary null bytes
         if b"\x00" in data[:1024]:
             raise InvalidFileContentError(
                 "File has .txt extension but contains binary content."
@@ -80,10 +81,18 @@ def validate_file_content(data: bytes, ext: str) -> None:
 
 
 class IngestionService:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings, repo: DocumentRepository | None = None):
         self.settings = settings
         self.docs_dir = settings.data_dir / "documents"
         self.docs_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+        if repo is None:
+            db_path = get_db_path(settings.data_dir)
+            conn = connect_db(db_path)
+            init_db(conn)
+            self.repo = DocumentRepository(conn)
+        else:
+            self.repo = repo
 
     def import_document_bytes(
         self,
@@ -102,70 +111,74 @@ class IngestionService:
         content_hash = compute_sha256(data)
         doc_id = generate_document_id(content_hash)
 
-        # Check duplicate policy: content hash duplicate check
+        # Check duplicate policy using persistent DB
+        existing = self.repo.find_by_content_hash(content_hash)
+        if existing:
+            raise DuplicateDocumentError(
+                f"Document '{original_filename}' is identical to already imported document '{existing.original_filename}'.",
+                existing_doc_id=existing.id,
+            )
+
+        # Write original file securely to per-user data directory
         stored_path = self.docs_dir / f"{content_hash}{ext}"
-        meta_path = self.docs_dir / f"{content_hash}.json"
-
-        if stored_path.exists() and meta_path.exists():
-            try:
-                existing_meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                raise DuplicateDocumentError(
-                    f"Document '{original_filename}' is identical to already imported document '{existing_meta.get('original_filename', original_filename)}'.",
-                    existing_doc_id=existing_meta.get("id", doc_id),
-                )
-            except (json.JSONDecodeError, OSError):
-                # Corrupted metadata; allow re-importing
-                pass
-
-        # Write original file securely to user data dir
         stored_path.write_bytes(data)
 
         # Extract text and metadata
         try:
             extraction = extract_document(stored_path)
         except Exception as exc:
-            # If extraction failed, clean up stored file so we don't leave partial state
+            # Clean up stored file if extraction fails
             stored_path.unlink(missing_ok=True)
             raise InvalidFileContentError(f"Failed to extract document contents: {exc}") from exc
 
-        metadata = DocumentMetadata(
-            id=doc_id,
+        return self.repo.create_document(
+            doc_id=doc_id,
             original_filename=original_filename,
             extension=ext,
             file_size_bytes=len(data),
             content_hash=content_hash,
+            stored_path=str(stored_path),
             page_count=extraction.page_count,
+            extracted_text=extraction.text,
             format_metadata=extraction.metadata,
             warnings=extraction.warnings,
             is_scanned=extraction.is_scanned,
+            status="completed",
         )
-
-        detail = DocumentDetail(
-            metadata=metadata,
-            extracted_text=extraction.text,
-        )
-
-        # Persist document metadata and text preview to disk
-        meta_path.write_text(detail.model_dump_json(indent=2), encoding="utf-8")
-
-        return detail
 
     def get_document(self, doc_id: str) -> DocumentDetail | None:
-        for json_file in self.docs_dir.glob("*.json"):
-            try:
-                detail = DocumentDetail.model_validate_json(json_file.read_text(encoding="utf-8"))
-                if detail.metadata.id == doc_id:
-                    return detail
-            except Exception:
-                continue
-        return None
+        return self.repo.get_document(doc_id)
 
-    def list_documents(self) -> list[DocumentMetadata]:
-        documents: list[DocumentMetadata] = []
-        for json_file in sorted(self.docs_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+    def list_documents(
+        self,
+        query: str | None = None,
+        extension: str | None = None,
+        status: str | None = None,
+        sort_by: str = "created_at",
+        sort_order: str = "desc",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> PaginatedDocuments:
+        return self.repo.list_documents(
+            query=query,
+            extension=extension,
+            status=status,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
+
+    def delete_document(self, doc_id: str, delete_file: bool = True) -> bool:
+        stored_path = self.repo.delete_document(doc_id)
+        if not stored_path:
+            return False
+        if delete_file:
             try:
-                detail = DocumentDetail.model_validate_json(json_file.read_text(encoding="utf-8"))
-                documents.append(detail.metadata)
-            except Exception:
-                continue
-        return documents
+                Path(stored_path).unlink(missing_ok=True)
+            except OSError as err:
+                logger.warning("Could not delete stored file %s: %s", stored_path, err)
+        return True
+
+    def get_stats(self) -> dict[str, int]:
+        return self.repo.get_stats()

@@ -107,11 +107,22 @@ export function registerIpcHandlers(backend, trust) {
     }
   });
 
-  // List all imported documents
-  handle(IPC.documentsList, async () => {
+  // List documents with FTS search, filters, sorting, and pagination
+  handle(IPC.documentsList, async (_event, params = {}) => {
     try {
-      const docs = await backend.request('/api/documents');
-      return { ok: true, data: docs };
+      const searchParams = new URLSearchParams();
+      if (params.q) searchParams.set('q', params.q);
+      if (params.ext) searchParams.set('ext', params.ext);
+      if (params.status) searchParams.set('status', params.status);
+      if (params.sort_by) searchParams.set('sort_by', params.sort_by);
+      if (params.sort_order) searchParams.set('sort_order', params.sort_order);
+      if (params.page) searchParams.set('page', String(params.page));
+      if (params.page_size) searchParams.set('page_size', String(params.page_size));
+
+      const qs = searchParams.toString();
+      const url = qs ? `/api/documents?${qs}` : '/api/documents';
+      const result = await backend.request(url);
+      return { ok: true, data: result };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
@@ -122,6 +133,28 @@ export function registerIpcHandlers(backend, trust) {
     try {
       const doc = await backend.request(`/api/documents/${encodeURIComponent(docId)}`);
       return { ok: true, data: doc };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // Delete document
+  handle(IPC.documentsDelete, async (_event, docId) => {
+    try {
+      await backend.request(`/api/documents/${encodeURIComponent(docId)}`, {
+        method: 'DELETE',
+      });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // Document statistics
+  handle(IPC.documentsStats, async () => {
+    try {
+      const stats = await backend.request('/api/documents/stats');
+      return { ok: true, data: stats };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }

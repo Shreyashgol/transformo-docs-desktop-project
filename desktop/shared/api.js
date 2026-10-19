@@ -15,4 +15,6 @@ export const IPC = {
   documentsUploadBuffer: 'documents:upload-buffer',
   documentsList: 'documents:list',
   documentsGet: 'documents:get',
+  documentsDelete: 'documents:delete',
+  documentsStats: 'documents:stats',
 };

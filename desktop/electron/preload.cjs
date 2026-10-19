@@ -23,8 +23,10 @@ const api = {
   documents: {
     selectAndImport: () => invoke('documents:select-and-import'),
     uploadBuffer: (data) => invoke('documents:upload-buffer', data),
-    list: () => invoke('documents:list'),
+    list: (params) => invoke('documents:list', params),
     get: (docId) => invoke('documents:get', docId),
+    delete: (docId) => invoke('documents:delete', docId),
+    stats: () => invoke('documents:stats'),
   },
 };
 

@@ -168,7 +168,10 @@ def test_api_import_malformed_pdf_rejected(client, auth):
 def test_api_list_documents(client, auth):
     res = client.get("/api/documents", headers=auth)
     assert res.status_code == 200
-    assert isinstance(res.json(), list)
+    body = res.json()
+    assert "items" in body
+    assert isinstance(body["items"], list)
+    assert "total_count" in body
 
 
 def test_api_get_nonexistent_document(client, auth):

@@ -12,5 +12,7 @@ describe('shared/api IPC channels', () => {
     expect(IPC.documentsUploadBuffer).toBe('documents:upload-buffer');
     expect(IPC.documentsList).toBe('documents:list');
     expect(IPC.documentsGet).toBe('documents:get');
+    expect(IPC.documentsDelete).toBe('documents:delete');
+    expect(IPC.documentsStats).toBe('documents:stats');
   });
 });

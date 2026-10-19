@@ -12,17 +12,37 @@ function formatBytes(bytes) {
 }
 
 export function DashboardPage() {
-  const [documents, setDocuments] = useState([]);
+  const [stats, setStats] = useState({ total_documents: 0, scanned_documents: 0, ready_documents: 0 });
+  const [recentDocs, setRecentDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const refreshData = async () => {
+    try {
+      const [statsRes, listRes] = await Promise.all([
+        window.transformo.documents.stats(),
+        window.transformo.documents.list({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' }),
+      ]);
+      if (statsRes.ok) setStats(statsRes.data);
+      if (listRes.ok) setRecentDocs(listRes.data.items.map((i) => i.metadata));
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let ignore = false;
-    window.transformo.documents.list().then((res) => {
+    Promise.all([
+      window.transformo.documents.stats(),
+      window.transformo.documents.list({ page: 1, page_size: 5, sort_by: 'created_at', sort_order: 'desc' }),
+    ]).then(([statsRes, listRes]) => {
       if (!ignore) {
-        if (res.ok) setDocuments(res.data);
+        if (statsRes.ok) setStats(statsRes.data);
+        if (listRes.ok) setRecentDocs(listRes.data.items.map((i) => i.metadata));
         setLoading(false);
       }
     }).catch(() => {
@@ -33,17 +53,12 @@ export function DashboardPage() {
     };
   }, []);
 
-  const refreshDocuments = async () => {
-    const res = await window.transformo.documents.list();
-    if (res.ok) setDocuments(res.data);
-  };
-
   const handleImport = async () => {
     setImporting(true);
     try {
       const res = await window.transformo.documents.selectAndImport();
       if (res.ok && res.data.imported && res.data.imported.length > 0) {
-        await refreshDocuments();
+        await refreshData();
         setSelectedDoc(res.data.imported[0]);
         setIsModalOpen(true);
       }
@@ -60,12 +75,10 @@ export function DashboardPage() {
     }
   };
 
-  const scannedCount = documents.filter((d) => d.is_scanned).length;
-
-  const stats = [
-    { label: 'Total Documents', value: String(documents.length), icon: FileText, color: 'text-accent' },
+  const statCards = [
+    { label: 'Total Documents', value: String(stats.total_documents), icon: FileText, color: 'text-accent' },
     { label: 'AI Processed', value: '0', icon: Brain, color: 'text-success' },
-    { label: 'Scanned / Notice', value: String(scannedCount), icon: Clock, color: 'text-warning' },
+    { label: 'Scanned / Notice', value: String(stats.scanned_documents), icon: Clock, color: 'text-warning' },
     { label: 'Extractions', value: '0', icon: BarChart3, color: 'text-muted' },
   ];
 
@@ -75,7 +88,7 @@ export function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
           <p className="mt-1 text-sm text-muted">
-            A high-level overview of your document library and machine-readable data.
+            A high-level overview of your persistent document library and machine-readable data.
           </p>
         </div>
         <Button
@@ -89,7 +102,7 @@ export function DashboardPage() {
       </header>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        {stats.map(({ label, value, icon: Icon, color }) => (
+        {statCards.map(({ label, value, icon: Icon, color }) => (
           <Card key={label} className="!py-0">
             <div className="flex items-center gap-3 py-4">
               <div className={`rounded-lg bg-sunken p-2 ${color}`}>
@@ -109,7 +122,7 @@ export function DashboardPage() {
           <div className="flex h-36 items-center justify-center gap-2 text-sm text-muted">
             <Spinner label="Loading activity" /> Loading activity…
           </div>
-        ) : documents.length === 0 ? (
+        ) : recentDocs.length === 0 ? (
           <EmptyState
             icon={FileText}
             title="No activity yet"
@@ -127,7 +140,7 @@ export function DashboardPage() {
           />
         ) : (
           <div className="divide-y divide-border">
-            {documents.slice(0, 5).map((doc) => (
+            {recentDocs.map((doc) => (
               <div
                 key={doc.id}
                 className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-sunken/50"
@@ -200,6 +213,9 @@ export function DashboardPage() {
         doc={selectedDoc}
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onDeleted={() => {
+          void refreshData();
+        }}
       />
     </div>
   );

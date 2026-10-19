@@ -1,14 +1,19 @@
 import {
   AlertCircle,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   FileUp,
+  Filter,
   Search,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { DocumentDetailModal } from '../components/DocumentDetailModal.jsx';
-import { Badge, Button, Card, EmptyState, Spinner } from '../components/ui.jsx';
+import { Badge, Button, Card, Dialog, EmptyState, Spinner } from '../components/ui.jsx';
 
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
@@ -19,43 +24,58 @@ function formatBytes(bytes) {
 }
 
 export function DocumentsPage() {
-  const [documents, setDocuments] = useState([]);
+  const [data, setData] = useState({ items: [], total_count: 0, page: 1, total_pages: 1 });
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
-    window.transformo.documents.list().then((res) => {
-      if (!ignore) {
-        if (res.ok) setDocuments(res.data);
-        else setError(res.error);
-        setLoading(false);
-      }
-    }).catch((err) => {
-      if (!ignore) {
-        setError(err instanceof Error ? err.message : String(err));
-        setLoading(false);
-      }
-    });
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFormat, setSelectedFormat] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const refreshDocuments = async () => {
+  // Single item delete confirmation
+  const [docToDelete, setDocToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchDocuments = useCallback(async (params = {}) => {
+    setLoading(true);
     try {
-      const res = await window.transformo.documents.list();
-      if (res.ok) setDocuments(res.data);
-      else setError(res.error);
+      const res = await window.transformo.documents.list({
+        q: params.q !== undefined ? params.q : searchQuery,
+        ext: params.ext !== undefined ? params.ext : selectedFormat,
+        status: params.status !== undefined ? params.status : selectedStatus,
+        sort_by: params.sort_by !== undefined ? params.sort_by : sortBy,
+        sort_order: params.sort_order !== undefined ? params.sort_order : sortOrder,
+        page: params.page !== undefined ? params.page : page,
+        page_size: pageSize,
+      });
+      if (res.ok) {
+        setData(res.data);
+      } else {
+        setError(res.error);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [searchQuery, selectedFormat, selectedStatus, sortBy, sortOrder, page]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchDocuments();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [fetchDocuments]);
 
   const handleSelectFiles = async () => {
     setError(null);
@@ -66,10 +86,12 @@ export function DocumentsPage() {
         if (res.data.errors && res.data.errors.length > 0) {
           const firstErr = res.data.errors[0];
           setError(`${firstErr.filename}: ${firstErr.error}`);
+        } else if (res.data.imported && res.data.imported.length > 0) {
+          setSuccessMsg(`Successfully imported ${res.data.imported.length} document(s).`);
+          setTimeout(() => setSuccessMsg(null), 3000);
         }
-        await refreshDocuments();
+        await fetchDocuments();
         if (res.data.imported && res.data.imported.length > 0) {
-          // Open preview of the first imported document
           setSelectedDoc(res.data.imported[0]);
           setIsModalOpen(true);
         }
@@ -94,6 +116,7 @@ export function DocumentsPage() {
     setImporting(true);
     try {
       let lastImported = null;
+      let count = 0;
       for (const file of files) {
         const buffer = await file.arrayBuffer();
         const res = await window.transformo.documents.uploadBuffer({
@@ -102,12 +125,17 @@ export function DocumentsPage() {
         });
         if (res.ok) {
           lastImported = res.data;
+          count += 1;
         } else {
           setError(`${file.name}: ${res.error}`);
           break;
         }
       }
-      await refreshDocuments();
+      if (count > 0) {
+        setSuccessMsg(`Successfully imported ${count} document(s).`);
+        setTimeout(() => setSuccessMsg(null), 3000);
+      }
+      await fetchDocuments();
       if (lastImported) {
         setSelectedDoc(lastImported);
         setIsModalOpen(true);
@@ -133,9 +161,26 @@ export function DocumentsPage() {
     }
   };
 
-  const filteredDocs = documents.filter((doc) =>
-    doc.original_filename.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
+  const handleConfirmDelete = async () => {
+    if (!docToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await window.transformo.documents.delete(docToDelete.id);
+      if (res.ok) {
+        setDocToDelete(null);
+        await fetchDocuments();
+        setSuccessMsg('Document deleted successfully.');
+        setTimeout(() => setSuccessMsg(null), 3000);
+      } else {
+        setError(res.error);
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const startIdx = data.total_count === 0 ? 0 : (data.page - 1) * pageSize + 1;
+  const endIdx = Math.min(data.page * pageSize, data.total_count);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -143,7 +188,7 @@ export function DocumentsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Documents</h1>
           <p className="mt-1 text-sm text-muted">
-            Manage your document library, extract text, and view document details.
+            Manage your document library, run full-text search, and extract machine-readable data.
           </p>
         </div>
         <Button
@@ -156,7 +201,17 @@ export function DocumentsPage() {
         </Button>
       </header>
 
-      {/* Error alert if any */}
+      {/* Success Notification */}
+      {successMsg && (
+        <div className="flex items-center justify-between rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">
+          <span>{successMsg}</span>
+          <button type="button" onClick={() => setSuccessMsg(null)} className="hover:opacity-75">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Error alert */}
       {error && (
         <div className="flex items-center justify-between rounded-lg border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           <div className="flex items-center gap-2.5">
@@ -196,7 +251,7 @@ export function DocumentsPage() {
           <button
             type="button"
             onClick={handleSelectFiles}
-            className="text-accent underline font-semibold hover:opacity-80"
+            className="text-accent underline font-semibold hover:opacity-80 cursor-pointer"
           >
             browse your Mac
           </button>
@@ -206,87 +261,245 @@ export function DocumentsPage() {
         </p>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Filter documents by name…"
-          className="h-10 w-full rounded-lg border border-border bg-surface pl-9 pr-4 text-sm text-ink placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-        />
+      {/* Search & Filter Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Search Bar with clear */}
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Full-text search document contents or filenames…"
+            className="h-10 w-full rounded-lg border border-border bg-surface pl-9 pr-9 text-sm text-ink placeholder:text-subtle focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setPage(1);
+              }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        {/* Filter & Sort Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Format Filter */}
+          <div className="flex items-center gap-1 text-xs text-muted">
+            <Filter size={13} className="text-subtle" />
+            <select
+              value={selectedFormat}
+              onChange={(e) => {
+                setSelectedFormat(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 rounded-md border border-border bg-surface px-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="">All Formats</option>
+              <option value=".pdf">PDF</option>
+              <option value=".docx">DOCX</option>
+              <option value=".txt">TXT</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={selectedStatus}
+            onChange={(e) => {
+              setSelectedStatus(e.target.value);
+              setPage(1);
+            }}
+            className="h-9 rounded-md border border-border bg-surface px-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+          >
+            <option value="">All Statuses</option>
+            <option value="completed">Ready</option>
+            <option value="scanned">Scanned / Notice</option>
+          </select>
+
+          {/* Sort Control */}
+          <div className="flex items-center gap-1 text-xs text-muted">
+            <ArrowUpDown size={13} className="text-subtle" />
+            <select
+              value={`${sortBy}:${sortOrder}`}
+              onChange={(e) => {
+                const [sb, so] = e.target.value.split(':');
+                setSortBy(sb);
+                setSortOrder(so);
+                setPage(1);
+              }}
+              className="h-9 rounded-md border border-border bg-surface px-2.5 text-xs text-ink focus:border-accent focus:outline-none"
+            >
+              <option value="created_at:desc">Newest first</option>
+              <option value="created_at:asc">Oldest first</option>
+              <option value="filename:asc">Name (A–Z)</option>
+              <option value="filename:desc">Name (Z–A)</option>
+              <option value="size:desc">Size (largest)</option>
+              <option value="size:asc">Size (smallest)</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Documents List */}
-      <Card title={`Library (${documents.length})`} className="!p-0">
+      {/* Document Library Table */}
+      <Card
+        title={
+          <div className="flex items-center gap-2">
+            <span>Library</span>
+            <span className="text-xs font-normal text-muted">({data.total_count} total)</span>
+          </div>
+        }
+        className="!p-0"
+      >
         {loading ? (
-          <div className="flex h-40 items-center justify-center gap-2 text-sm text-muted">
-            <Spinner label="Loading documents" /> Loading library…
+          <div className="flex h-44 items-center justify-center gap-2 text-sm text-muted">
+            <Spinner label="Loading documents" /> Searching document library…
           </div>
-        ) : documents.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No documents imported yet"
-            description="Import your first PDF, DOCX, or TXT document to begin extracting text and viewing machine-readable data."
-            action={
+        ) : data.total_count === 0 ? (
+          searchQuery || selectedFormat || selectedStatus ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="rounded-full bg-sunken p-4 text-subtle">
+                <Search size={24} aria-hidden />
+              </div>
+              <p className="mt-4 text-sm font-medium">No matching documents found</p>
+              <p className="mt-1 text-xs text-muted">
+                Try searching with different keywords or clearing your filters.
+              </p>
               <Button
-                variant="primary"
-                icon={<Upload size={14} />}
-                onClick={handleSelectFiles}
-                busy={importing}
+                className="mt-4"
+                variant="secondary"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedFormat('');
+                  setSelectedStatus('');
+                  setPage(1);
+                }}
               >
-                Import your first document
+                Clear all filters
               </Button>
-            }
-          />
-        ) : filteredDocs.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted">
-            No documents matching &quot;{searchQuery}&quot;
-          </div>
+            </div>
+          ) : (
+            <EmptyState
+              icon={FileText}
+              title="No documents imported yet"
+              description="Import your first PDF, DOCX, or TXT document to begin extracting text and viewing machine-readable data."
+              action={
+                <Button
+                  variant="primary"
+                  icon={<Upload size={14} />}
+                  onClick={handleSelectFiles}
+                  busy={importing}
+                >
+                  Import your first document
+                </Button>
+              }
+            />
+          )
         ) : (
           <div className="divide-y divide-border">
-            {filteredDocs.map((doc) => (
+            {data.items.map(({ metadata: doc, snippet }) => (
               <div
                 key={doc.id}
-                className="flex flex-wrap items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-sunken/50"
+                className="flex flex-col gap-2.5 px-5 py-4 transition-colors hover:bg-sunken/40"
               >
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <div className="rounded-lg bg-accent-soft p-2 text-accent">
-                    <FileText size={18} aria-hidden />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{doc.original_filename}</p>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-                      <span>{formatBytes(doc.file_size_bytes)}</span>
-                      <span>•</span>
-                      <span>{doc.page_count} {doc.page_count === 1 ? 'page' : 'pages'}</span>
-                      <span>•</span>
-                      <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="rounded-lg bg-accent-soft p-2 text-accent shrink-0">
+                      <FileText size={18} aria-hidden />
                     </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-ink">{doc.original_filename}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+                        <span>{formatBytes(doc.file_size_bytes)}</span>
+                        <span>•</span>
+                        <span>{doc.page_count} {doc.page_count === 1 ? 'page' : 'pages'}</span>
+                        <span>•</span>
+                        <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {doc.is_scanned ? (
+                      <Badge tone="warning">Scanned / Notice</Badge>
+                    ) : (
+                      <Badge tone="success">Ready</Badge>
+                    )}
+                    <Badge tone="neutral">{(doc.extension || '').replace('.', '').toUpperCase()}</Badge>
+                    <Button
+                      onClick={() => handleViewDetail(doc.id)}
+                      className="!h-7 !px-2.5 !text-xs"
+                    >
+                      View text
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setDocToDelete(doc)}
+                      className="rounded-md p-1.5 text-subtle hover:bg-danger-soft hover:text-danger transition-colors cursor-pointer"
+                      title="Delete document"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  {doc.is_scanned ? (
-                    <Badge tone="warning">Scanned / No text</Badge>
-                  ) : (
-                    <Badge tone="success">Ready</Badge>
-                  )}
-                  <Badge tone="neutral">{(doc.extension || '').replace('.', '').toUpperCase()}</Badge>
-                  <Button
-                    onClick={() => handleViewDetail(doc.id)}
-                    className="!h-7 !px-2.5 !text-xs"
-                  >
-                    View text
-                  </Button>
-                </div>
+                {/* Full-Text Search Snippet Highlight */}
+                {snippet && (
+                  <div className="ml-11 rounded-md bg-sunken px-3 py-1.5 font-mono text-xs text-muted border border-border/60">
+                    <span className="text-[11px] font-semibold text-subtle uppercase mr-1.5">Match:</span>
+                    <span
+                      dangerouslySetInnerHTML={{
+                        __html: snippet.replace(
+                          /<mark>/g,
+                          '<mark class="bg-accent-soft text-accent font-semibold px-0.5 rounded">',
+                        ),
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             ))}
+
+            {/* Pagination footer */}
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-xs text-muted bg-surface/50">
+              <div>
+                Showing <strong className="font-medium text-ink">{startIdx}</strong> to{' '}
+                <strong className="font-medium text-ink">{endIdx}</strong> of{' '}
+                <strong className="font-medium text-ink">{data.total_count}</strong> documents
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={data.page <= 1}
+                  className="!h-7 !px-2 !text-xs"
+                  icon={<ChevronLeft size={14} />}
+                >
+                  Previous
+                </Button>
+                <span className="font-medium text-ink px-1">
+                  Page {data.page} of {data.total_pages}
+                </span>
+                <Button
+                  onClick={() => setPage((p) => Math.min(data.total_pages, p + 1))}
+                  disabled={data.page >= data.total_pages}
+                  className="!h-7 !px-2 !text-xs"
+                  icon={<ChevronRight size={14} />}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </Card>
@@ -296,7 +509,43 @@ export function DocumentsPage() {
         doc={selectedDoc}
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onDeleted={() => {
+          void fetchDocuments();
+          setSuccessMsg('Document deleted successfully.');
+          setTimeout(() => setSuccessMsg(null), 3000);
+        }}
       />
+
+      {/* Row Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(docToDelete)}
+        onClose={() => setDocToDelete(null)}
+        title="Delete Document"
+        className="!max-w-md"
+      >
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-ink leading-relaxed">
+            Are you sure you want to delete <strong className="font-semibold">{docToDelete?.original_filename}</strong>?
+            This will permanently remove the document, its extracted contents, and its managed local file.
+          </p>
+          <div className="flex justify-end gap-2.5 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setDocToDelete(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmDelete}
+              busy={deleting}
+            >
+              Delete document
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }
