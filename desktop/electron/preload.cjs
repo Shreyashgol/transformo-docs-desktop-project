@@ -33,6 +33,10 @@ const api = {
     setConsent: (consent) => invoke('ai:set-consent', consent),
     generateSummary: (params) => invoke('ai:generate-summary', params),
     getSummary: (docId) => invoke('ai:get-summary', docId),
+    extractDocument: (params) => invoke('ai:extract-document', params),
+    getExtraction: (docId, profile) => invoke('ai:get-extraction', { docId, profile }),
+    updateExtraction: (params) => invoke('ai:update-extraction', params),
+    exportExtraction: (params) => invoke('ai:export-extraction', params),
   },
 };
 

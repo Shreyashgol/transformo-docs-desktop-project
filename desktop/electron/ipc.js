@@ -213,4 +213,92 @@ export function registerIpcHandlers(backend, trust) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
   });
+
+  // AI Extract Structured Data
+  handle(IPC.aiExtractDocument, async (_event, { docId, profile = 'general', force = false }) => {
+    try {
+      const result = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/extract`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile, force_regenerate: Boolean(force) }),
+        },
+      );
+      return { ok: true, data: result };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Get Cached Extraction
+  handle(IPC.aiGetExtraction, async (_event, { docId, profile = 'general' }) => {
+    try {
+      const result = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/extract?profile=${encodeURIComponent(profile)}`,
+      );
+      return { ok: true, data: result };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Update Extraction (user edits / verification)
+  handle(IPC.aiUpdateExtraction, async (_event, { docId, profile = 'general', data, isVerified, userNotes }) => {
+    try {
+      const result = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/extract?profile=${encodeURIComponent(profile)}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data,
+            is_verified: Boolean(isVerified),
+            user_notes: userNotes || null,
+          }),
+        },
+      );
+      return { ok: true, data: result };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // AI Export Extraction (JSON or CSV with optional native save dialog)
+  handle(IPC.aiExportExtraction, async (_event, { docId, profile = 'general', format = 'json', saveDialog = true, defaultFilename }) => {
+    try {
+      const content = await backend.request(
+        `/api/documents/${encodeURIComponent(docId)}/export?profile=${encodeURIComponent(profile)}&format=${encodeURIComponent(format)}`,
+      );
+
+      const contentString = typeof content === 'object' ? JSON.stringify(content, null, 2) : String(content);
+
+      if (saveDialog) {
+        const focusedWindow = BrowserWindow.getFocusedWindow();
+        const ext = format === 'csv' ? 'csv' : 'json';
+        const filename = defaultFilename || `extraction_${profile}_${docId.slice(0, 8)}.${ext}`;
+
+        const saveRes = await dialog.showSaveDialog(focusedWindow || undefined, {
+          title: `Export ${profile.toUpperCase()} Extraction`,
+          defaultPath: filename,
+          filters: [
+            format === 'csv'
+              ? { name: 'CSV File (*.csv)', extensions: ['csv'] }
+              : { name: 'JSON File (*.json)', extensions: ['json'] },
+          ],
+        });
+
+        if (saveRes.canceled || !saveRes.filePath) {
+          return { ok: true, data: { canceled: true } };
+        }
+
+        await fs.writeFile(saveRes.filePath, contentString, 'utf8');
+        return { ok: true, data: { savedPath: saveRes.filePath, canceled: false } };
+      }
+
+      return { ok: true, data: { content: contentString, canceled: false } };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 }

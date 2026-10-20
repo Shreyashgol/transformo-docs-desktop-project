@@ -49,3 +49,11 @@ class BaseAIProvider(ABC):
         focus: str | None = None,
     ) -> SummaryResponse:
         raise NotImplementedError
+
+    @abstractmethod
+    def extract_structured_data(
+        self,
+        text: str,
+        profile: str,
+    ) -> dict[str, Any]:
+        raise NotImplementedError

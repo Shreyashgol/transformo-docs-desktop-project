@@ -4,6 +4,7 @@ import {
   Calendar,
   Check,
   Copy,
+  FileSpreadsheet,
   FileText,
   RotateCw,
   Search,
@@ -12,6 +13,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { ExtractionView } from './ExtractionView.jsx';
 import { PrivacyConsentDialog } from './PrivacyConsentDialog.jsx';
 import { Badge, Button, Dialog, Spinner } from './ui.jsx';
 
@@ -238,6 +240,18 @@ export function DocumentDetailModal({
               <Sparkles size={14} />
               AI Summary {summary && <span className="size-1.5 rounded-full bg-accent" />}
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('extraction')}
+              className={`flex items-center gap-2 border-b-2 px-3 py-2 text-xs font-medium transition-colors ${
+                tab === 'extraction'
+                  ? 'border-accent text-accent'
+                  : 'border-transparent text-muted hover:text-ink'
+              }`}
+            >
+              <FileSpreadsheet size={14} />
+              Structured Data
+            </button>
           </div>
 
           {/* TAB 1: Extracted Text */}
@@ -456,6 +470,11 @@ export function DocumentDetailModal({
                 </div>
               )}
             </div>
+          )}
+
+          {/* TAB 3: Structured Data Extraction */}
+          {tab === 'extraction' && (
+            <ExtractionView doc={doc} />
           )}
         </div>
       </Dialog>

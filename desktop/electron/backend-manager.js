@@ -95,7 +95,14 @@ export class BackendManager extends EventEmitter {
     } catch (err) {
       throw new BackendError(`Could not reach the document engine: ${errorMessage(err)}`);
     }
-    const body = await res.json().catch(() => null);
+    let body;
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      body = await res.json().catch(() => null);
+    } else {
+      body = await res.text().catch(() => null);
+    }
+
     if (!res.ok) {
       let detail = res.statusText;
       if (body && typeof body === 'object' && 'detail' in body) {
@@ -104,6 +111,8 @@ export class BackendManager extends EventEmitter {
         } else {
           detail = String(body.detail);
         }
+      } else if (typeof body === 'string' && body.trim()) {
+        detail = body;
       }
       throw new BackendError(detail, res.status);
     }

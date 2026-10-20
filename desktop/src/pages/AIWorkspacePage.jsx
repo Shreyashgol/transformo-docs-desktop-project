@@ -13,6 +13,7 @@ export function AIWorkspacePage() {
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState('summary');
   const [aiConfig, setAiConfig] = useState(null);
 
   const refreshData = async () => {
@@ -47,10 +48,11 @@ export function AIWorkspacePage() {
     };
   }, []);
 
-  const handleOpenSummary = async (docId) => {
+  const handleOpenAction = async (docId, tab = 'summary') => {
     const res = await window.transformo.documents.get(docId);
     if (res.ok) {
       setSelectedDoc(res.data);
+      setModalTab(tab);
       setIsModalOpen(true);
     }
   };
@@ -92,14 +94,14 @@ export function AIWorkspacePage() {
         </Card>
 
         <Card className="!p-4">
-          <div className="flex items-start gap-3 opacity-70">
-            <div className="rounded-lg bg-sunken p-2.5 text-muted">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg bg-accent-soft p-2.5 text-accent">
               <FileSearch size={20} />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-ink">Structured Extraction</h3>
-                <Badge tone="neutral">Phase 05</Badge>
+                <Badge tone="success">Active</Badge>
               </div>
               <p className="mt-1 text-xs text-muted leading-relaxed">
                 Extract structured fields into JSON/CSV for invoices, receipts, and resumes.
@@ -142,8 +144,17 @@ export function AIWorkspacePage() {
 
                 <div className="flex items-center gap-2">
                   <Button
+                    variant="ghost"
+                    onClick={() => handleOpenAction(doc.id, 'extraction')}
+                    icon={<FileSearch size={13} />}
+                    className="!h-7 !px-2.5 !text-xs"
+                    disabled={doc.is_scanned}
+                  >
+                    Extract Data
+                  </Button>
+                  <Button
                     variant="primary"
-                    onClick={() => handleOpenSummary(doc.id)}
+                    onClick={() => handleOpenAction(doc.id, 'summary')}
                     icon={<Sparkles size={13} />}
                     className="!h-7 !px-2.5 !text-xs"
                     disabled={doc.is_scanned}
@@ -157,12 +168,12 @@ export function AIWorkspacePage() {
         )}
       </Card>
 
-      {/* Document Detail Modal with initialTab='summary' */}
+      {/* Document Detail Modal */}
       <DocumentDetailModal
         doc={selectedDoc}
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        initialTab="summary"
+        initialTab={modalTab}
         onDeleted={() => {
           void refreshData();
         }}

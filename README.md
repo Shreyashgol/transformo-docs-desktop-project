@@ -4,17 +4,16 @@ A macOS desktop application for turning PDF, DOCX, and TXT documents into search
 
 Built for **PS #95 — Transformo Docs Application: Empowering Machine-Readable Document Management System.**
 
-> **Status:** Phase 00 (planning) complete. Application code starts in Phase 01. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for the architecture and phase plan.
+> **Status:** Phases 01 through 05 complete. Full desktop foundation, document ingestion, SQLite FTS5 library, AI document summaries with Groq, and structured data extraction with JSON/CSV exports are implemented and tested. See [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) for full details.
 
-## Features (planned)
+## Implemented Features
 
-- Import PDF, DOCX, and TXT files, with validation by extension, size, and file content
-- Text and metadata extraction (PyMuPDF, python-docx)
-- Local SQLite library with full-text search (FTS5)
-- AI summaries (Groq API using official SDK), with explicit privacy consent
-- Structured extraction (General / Invoice / Resume) validated against Pydantic schemas
-- JSON and CSV export
-- Distributed as a standalone macOS `.dmg`. End users do not need Python or Node.
+- **Document Ingestion:** Import PDF, DOCX, and TXT files with format validation, size limit checks, and SHA-256 content deduplication.
+- **Parsing:** High-speed text extraction via PyMuPDF and python-docx, with scanned PDF detection and charset fallback.
+- **SQLite Document Library:** Fast SQLite WAL storage with FTS5 full-text search, snippet highlighting, format/status filtering, and cascading deletion.
+- **AI Document Summaries:** Multi-stage map-reduce summarization powered by Groq API (`openai/gpt-oss-120b`), caching, and user consent guardrails.
+- **Structured Data Extraction:** Pydantic-validated extraction profiles for General Documents, Invoices/Receipts, and Resumes/CVs with provenance citations.
+- **Review & Export:** Interactive review and editing UI with missing-field alerts, user verification badges, and RFC 4180 CSV / JSON exports.
 
 ## Tech stack
 

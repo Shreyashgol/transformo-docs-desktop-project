@@ -18,5 +18,9 @@ describe('shared/api IPC channels', () => {
     expect(IPC.aiSetConsent).toBe('ai:set-consent');
     expect(IPC.aiGenerateSummary).toBe('ai:generate-summary');
     expect(IPC.aiGetSummary).toBe('ai:get-summary');
+    expect(IPC.aiExtractDocument).toBe('ai:extract-document');
+    expect(IPC.aiGetExtraction).toBe('ai:get-extraction');
+    expect(IPC.aiUpdateExtraction).toBe('ai:update-extraction');
+    expect(IPC.aiExportExtraction).toBe('ai:export-extraction');
   });
 });

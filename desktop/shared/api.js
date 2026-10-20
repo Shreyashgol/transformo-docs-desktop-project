@@ -21,4 +21,8 @@ export const IPC = {
   aiSetConsent: 'ai:set-consent',
   aiGenerateSummary: 'ai:generate-summary',
   aiGetSummary: 'ai:get-summary',
+  aiExtractDocument: 'ai:extract-document',
+  aiGetExtraction: 'ai:get-extraction',
+  aiUpdateExtraction: 'ai:update-extraction',
+  aiExportExtraction: 'ai:export-extraction',
 };

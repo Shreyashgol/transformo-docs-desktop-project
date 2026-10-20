@@ -11,6 +11,13 @@ from app.ai.base import (
     NetworkError,
     RateLimitError,
 )
+from app.ai.extraction_models import (
+    ExtractionProfile,
+    ExtractionRequest,
+    ExtractionResult,
+    ExtractionUpdateRequest,
+)
+from app.ai.extraction_service import ExtractionService
 from app.ai.models import AIProviderConfig, SummaryRequest, SummaryResponse
 from app.ai.service import SummarizationService
 
@@ -103,3 +110,145 @@ def get_summary(request: Request, doc_id: str) -> SummaryResponse:
             detail=f"No summary found for document '{doc_id}'.",
         )
     return summary
+
+
+# ============================================================================
+# Phase 05: Structured Data Extraction Endpoints
+# ============================================================================
+
+def get_extraction_service(request: Request) -> ExtractionService:
+    if not hasattr(request.app.state, "extraction_service"):
+        if not hasattr(request.app.state, "ingestion_service"):
+            from app.ingestion.service import IngestionService
+            request.app.state.ingestion_service = IngestionService(request.app.state.settings)
+        repo = request.app.state.ingestion_service.repo
+        from app.ai.extraction_service import ExtractionService
+        request.app.state.extraction_service = ExtractionService(repo)
+    return request.app.state.extraction_service
+
+
+@router.post("/api/documents/{doc_id}/extract", response_model=ExtractionResult)
+def extract_document(
+    request: Request,
+    doc_id: str,
+    req: ExtractionRequest,
+) -> ExtractionResult:
+    service = get_extraction_service(request)
+    try:
+        return service.extract_document(
+            doc_id=doc_id,
+            profile=req.profile,
+            force_regenerate=req.force_regenerate,
+        )
+    except AuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
+        ) from exc
+    except RateLimitError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+        ) from exc
+    except NetworkError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except InvalidResponseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except AIProviderError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get("/api/documents/{doc_id}/extract", response_model=ExtractionResult)
+def get_extraction(
+    request: Request,
+    doc_id: str,
+    profile: ExtractionProfile = Query("general", description="Extraction profile"),
+) -> ExtractionResult:
+    service = get_extraction_service(request)
+    result = service.get_cached_extraction(doc_id, profile)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No extraction found for document '{doc_id}' with profile '{profile}'.",
+        )
+    return result
+
+
+@router.put("/api/documents/{doc_id}/extract", response_model=ExtractionResult)
+def update_extraction(
+    request: Request,
+    doc_id: str,
+    body: ExtractionUpdateRequest,
+    profile: ExtractionProfile = Query("general", description="Extraction profile"),
+) -> ExtractionResult:
+    service = get_extraction_service(request)
+    try:
+        return service.update_extraction(
+            doc_id=doc_id,
+            profile=profile,
+            data=body.data,
+            is_verified=body.is_verified,
+            user_notes=body.user_notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get("/api/documents/{doc_id}/export")
+def export_extraction(
+    request: Request,
+    doc_id: str,
+    profile: ExtractionProfile = Query("general", description="Extraction profile"),
+    format: str = Query("json", description="Export format: json or csv"),
+):
+    from fastapi.responses import Response
+
+    service = get_extraction_service(request)
+    fmt = format.lower().strip()
+    if fmt not in ("json", "csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported export format. Supported formats are 'json' and 'csv'.",
+        )
+
+    try:
+        if fmt == "csv":
+            csv_content = service.export_csv(doc_id, profile)
+            return Response(
+                content=csv_content,
+                media_type="text/csv; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="extraction_{profile}_{doc_id[:8]}.csv"',
+                },
+            )
+        else:
+            json_content = service.export_json(doc_id, profile)
+            return Response(
+                content=json_content,
+                media_type="application/json; charset=utf-8",
+                headers={
+                    "Content-Disposition": f'attachment; filename="extraction_{profile}_{doc_id[:8]}.json"',
+                },
+            )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc

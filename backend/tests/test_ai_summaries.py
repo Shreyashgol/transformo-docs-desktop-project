@@ -56,6 +56,18 @@ class MockAIProvider(BaseAIProvider):
             warnings=["Focus note"] if focus else [],
         )
 
+    def extract_structured_data(self, text: str, profile: str) -> dict:
+        self.call_count += 1
+        if self.should_fail == "auth":
+            raise AuthenticationError("Invalid Groq API key")
+        elif self.should_fail == "rate_limit":
+            raise RateLimitError("Rate limit exceeded")
+        elif self.should_fail == "network":
+            raise NetworkError("Connection refused")
+        elif self.should_fail == "invalid_json":
+            raise InvalidResponseError("Model returned invalid JSON")
+        return {"document_type": "Report", "title": "Mock Title"}
+
 
 def test_chunking_utility():
     long_text = "\n\n".join([f"Paragraph {i} with some detailed analytical content." for i in range(200)])
