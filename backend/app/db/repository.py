@@ -254,10 +254,23 @@ class DocumentRepository:
         total_docs = self.conn.execute("SELECT COUNT(*) as count FROM documents;").fetchone()["count"]
         scanned_docs = self.conn.execute("SELECT COUNT(*) as count FROM documents WHERE is_scanned = 1;").fetchone()["count"]
         completed_docs = self.conn.execute("SELECT COUNT(*) as count FROM documents WHERE status = 'completed';").fetchone()["count"]
+        summaries_count = self.conn.execute("SELECT COUNT(DISTINCT document_id) as count FROM ai_results WHERE type = 'summary';").fetchone()["count"]
+        extractions_count = self.conn.execute("SELECT COUNT(DISTINCT document_id) as count FROM ai_results WHERE type LIKE 'extraction%';").fetchone()["count"]
+        total_bytes = self.conn.execute("SELECT COALESCE(SUM(file_size_bytes), 0) as total FROM documents;").fetchone()["total"]
+        pdf_count = self.conn.execute("SELECT COUNT(*) as count FROM documents WHERE extension = '.pdf';").fetchone()["count"]
+        docx_count = self.conn.execute("SELECT COUNT(*) as count FROM documents WHERE extension = '.docx';").fetchone()["count"]
+        txt_count = self.conn.execute("SELECT COUNT(*) as count FROM documents WHERE extension = '.txt';").fetchone()["count"]
+
         return {
             "total_documents": total_docs,
             "scanned_documents": scanned_docs,
             "ready_documents": completed_docs,
+            "summaries_generated": summaries_count,
+            "extractions_generated": extractions_count,
+            "total_storage_bytes": total_bytes,
+            "pdf_count": pdf_count,
+            "docx_count": docx_count,
+            "txt_count": txt_count,
         }
 
     def _row_to_metadata(self, row: sqlite3.Row) -> DocumentMetadata:

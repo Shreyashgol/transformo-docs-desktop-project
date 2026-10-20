@@ -207,3 +207,6 @@ def test_api_stats(client, auth):
     assert "total_documents" in body
     assert "scanned_documents" in body
     assert "ready_documents" in body
+    assert "summaries_generated" in body
+    assert "extractions_generated" in body
+    assert "total_storage_bytes" in body

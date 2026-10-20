@@ -2,6 +2,7 @@ import {
   Brain,
   FileStack,
   FileText,
+  Info,
   LayoutDashboard,
   Settings,
 } from 'lucide-react';
@@ -14,13 +15,10 @@ const NAV = [
   { id: 'ai-workspace', label: 'AI Workspace', icon: Brain },
 ];
 
-const BOTTOM_NAV = [
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
-
 export function Sidebar({
   page,
   onNavigate,
+  onOpenAbout,
   backendState,
 }) {
   return (
@@ -45,15 +43,20 @@ export function Sidebar({
         ))}
 
         <div className="mt-auto flex flex-col gap-0.5">
-          {BOTTOM_NAV.map(({ id, label, icon: Icon }) => (
-            <NavButton
-              key={id}
-              active={page === id}
-              onClick={() => onNavigate(id)}
-              icon={Icon}
-              label={label}
-            />
-          ))}
+          <NavButton
+            active={page === 'settings'}
+            onClick={() => onNavigate('settings')}
+            icon={Settings}
+            label="Settings"
+          />
+          <button
+            type="button"
+            onClick={onOpenAbout}
+            className="flex h-9 items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium text-muted hover:bg-surface/60 hover:text-ink transition-colors cursor-pointer"
+          >
+            <Info size={16} aria-hidden />
+            About Project
+          </button>
         </div>
       </nav>
       <div className="border-t border-border px-5 py-3">
