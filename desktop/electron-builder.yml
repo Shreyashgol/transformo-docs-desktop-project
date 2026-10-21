@@ -1,0 +1,58 @@
+appId: com.transformo.docs
+productName: Transformo Docs
+copyright: Copyright © 2026 Transformo Docs
+
+# ── Files to include in the app bundle ────────────────────────────────────────
+files:
+  - electron/**/*
+  - shared/**/*
+  - dist/**/*
+  - package.json
+  - "!**/node_modules/.cache/**"
+  - "!**/__pycache__/**"
+  - "!docs/**"
+  - "!prompts/**"
+  - "!**/docs/**"
+  - "!**/prompts/**"
+  - "!**/*.md"
+
+# ── Extra resources bundled alongside the .app ────────────────────────────────
+# The packaged PyInstaller backend is placed here during desktop:dist:mac.
+extraResources:
+  - from: "../backend/dist/transformo-backend"
+    to: "backend/transformo-backend"
+    filter:
+      - "**/*"
+      - "!**/docs/**"
+      - "!**/prompts/**"
+      - "!**/*.md"
+      - "!**/.env*"
+
+# ── macOS bundle ──────────────────────────────────────────────────────────────
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  # icon: assets/icon.icns   # add a .icns when available
+
+# ── DMG options ───────────────────────────────────────────────────────────────
+dmg:
+  title: "Transformo Docs ${version}"
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# ── Output ────────────────────────────────────────────────────────────────────
+directories:
+  output: release
+
+# ── Never include secrets or dev artefacts ────────────────────────────────────
+artifactName: "TransformoDocs-${version}-${arch}.${ext}"
