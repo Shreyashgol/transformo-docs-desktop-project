@@ -53,3 +53,6 @@ release/
 # Logs
 logs/
 *.log
+
+prompts/
+
