@@ -99,59 +99,57 @@ Transformo Docs is designed with a **decoupled, multi-process architecture** sep
 
 ```mermaid
 graph TB
-    subgraph macOS Environment
-        subgraph Electron Application Container
-            subgraph Renderer Process [React 19 Frontend - Vite + Tailwind]
-                UI[Modern Responsive UI]
-                DocView[Document Viewer]
-                SearchBar[FTS5 Search Bar]
-                ReviewBench[Review & Correction Workbench]
-                ExportBtn[Export JSON / CSV]
+    subgraph MacOSHost ["macOS Environment"]
+        subgraph ElectronApp ["Electron Application Container"]
+            subgraph RendererProcess ["Renderer Process (React 19 Frontend)"]
+                UI["Modern Responsive UI"]
+                DocView["Document Viewer"]
+                SearchBar["FTS5 Search Bar"]
+                ReviewBench["Review & Correction Workbench"]
+                ExportBtn["Export JSON / CSV"]
             end
 
-            subgraph Preload Layer [Context Isolation Bridge]
-                Bridge[Secure window.electronAPI]
+            subgraph PreloadLayer ["Preload Layer (Context Isolation Bridge)"]
+                Bridge["Secure window.electronAPI"]
             end
 
-            subgraph Main Process [Electron Node.js Core]
-                ProcMgr[Backend Process Lifecycle Manager]
-                TokenGen[Session Token Generator]
-                PortFinder[Dynamic Loopback Port Allocator]
-                WinMgr[BrowserWindow & Native Dialogs]
+            subgraph MainProcess ["Main Process (Electron Node.js Core)"]
+                ProcMgr["Backend Process Lifecycle Manager"]
+                TokenGen["Session Token Generator"]
+                PortFinder["Dynamic Loopback Port Allocator"]
+                WinMgr["BrowserWindow & Native Dialogs"]
             end
         end
 
-        subgraph Packaged Python Service [FastAPI Service on 127.0.0.1]
-            AuthMid[Token Authentication Middleware]
-            Router[REST API Endpoints /api/v1]
-            IngestEng[Ingestion & Parser Engine - PyMuPDF & docx]
-            FTS5Eng[SQLite Database & FTS5 Indexer]
-            AISvc[Summarizer & Structured Extraction Service]
-            ExportEng[RFC 4180 CSV & JSON Serializer]
+        subgraph PythonBackend ["Packaged Python Service (FastAPI on 127.0.0.1)"]
+            AuthMid["Token Authentication Middleware"]
+            Router["REST API Endpoints (/api/v1)"]
+            IngestEng["Ingestion & Parser Engine (PyMuPDF & python-docx)"]
+            FTS5Eng["SQLite Database & FTS5 Indexer"]
+            AISvc["Summarizer & Structured Extraction Service"]
+            ExportEng["RFC 4180 CSV & JSON Serializer"]
         end
 
-        subgraph Local Filesystem Storage [~/Library/Application Support/Transformo Docs]
-            DocStore[Encrypted / Local Raw Document Vault]
-            DBFile[(transformo.db SQLite WAL)]
-            ConfigStore[config.json Settings]
+        subgraph LocalStorage ["Local Filesystem Storage (~/Library/Application Support)"]
+            DocStore["Local Raw Document Vault"]
+            DBFile[("transformo.db (SQLite WAL)")]
+            ConfigStore["config.json Settings"]
         end
 
-        subgraph External AI Cloud [On-Demand & User Consented]
-            GroqCloud[Groq Cloud API - Llama 3.3 / GPT-OSS 120B]
+        subgraph ExternalCloud ["External AI Cloud (On-Demand & Consented)"]
+            GroqCloud["Groq Cloud API (Llama 3.3 / GPT-OSS 120B)"]
         end
     end
 
     UI -->|React State & Calls| Bridge
-    Bridge -->|ipcRenderer.invoke| MainProcess
-    MainProcess -->|Spawns & Monitors| ProcMgr
-    ProcMgr -->|Supervises Mach-O Executable| Packaged Python Service
-    Bridge -->|Authenticated HTTP Requests with Bearer Token| Router
+    Bridge -->|ipcRenderer.invoke| ProcMgr
+    ProcMgr -->|Supervises Executable| Router
+    Bridge -->|Bearer HTTP Requests| Router
     Router --> AuthMid
-    AuthMid --> Router
-    Router --> IngestEng
-    Router --> FTS5Eng
-    Router --> AISvc
-    Router --> ExportEng
+    AuthMid --> IngestEng
+    AuthMid --> FTS5Eng
+    AuthMid --> AISvc
+    AuthMid --> ExportEng
     IngestEng --> DocStore
     FTS5Eng --> DBFile
     AISvc -->|HTTPS with User API Key| GroqCloud
