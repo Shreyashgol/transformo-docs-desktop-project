@@ -25,7 +25,10 @@ DEFAULT_MODEL = "openai/gpt-oss-120b"
 
 class GroqProvider(BaseAIProvider):
     def __init__(self, api_key: str | None = None, model: str | None = None):
-        # Load environment from root or backend .env if not yet loaded
+        # Load environment from persistent data dir if packaged, or root/backend .env if development
+        data_dir = os.getenv("TRANSFORMO_DATA_DIR")
+        if data_dir:
+            load_dotenv(Path(data_dir) / ".env")
         load_dotenv(Path(__file__).resolve().parents[2] / ".env")
         load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
@@ -43,6 +46,52 @@ class GroqProvider(BaseAIProvider):
 
     def is_configured(self) -> bool:
         return bool(self._api_key.strip())
+
+    def update_config(self, api_key: str | None = None, model: str | None = None) -> None:
+        if api_key is not None:
+            self._api_key = api_key.strip()
+            os.environ["GROQ_API_KEY"] = self._api_key
+        if model is not None:
+            self._model = model.strip() or DEFAULT_MODEL
+            os.environ["GROQ_MODEL"] = self._model
+        self._client = None
+
+        content = f"GROQ_API_KEY={self._api_key}\nGROQ_MODEL={self._model}\n"
+
+        # 1. Persist to TRANSFORMO_DATA_DIR (for packaged DMG / user data)
+        data_dir = os.getenv("TRANSFORMO_DATA_DIR")
+        if data_dir:
+            try:
+                dest = Path(data_dir) / ".env"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(content, encoding="utf-8")
+            except Exception as exc:
+                logger.warning("Could not persist .env to %s: %s", data_dir, exc)
+
+        # 2. Persist to backend/.env if running from workspace
+        for candidate in [
+            Path(__file__).resolve().parents[2] / ".env",
+            Path(__file__).resolve().parents[3] / ".env",
+        ]:
+            if candidate.parent.exists():
+                try:
+                    candidate.write_text(content, encoding="utf-8")
+                except Exception:
+                    pass
+
+    def validate_connection(self) -> dict[str, Any]:
+        if not self.is_configured():
+            return {"valid": False, "error": "Groq API key is empty."}
+        try:
+            client = self._get_client()
+            client.chat.completions.create(
+                model=self._model,
+                messages=[{"role": "user", "content": "ping"}],
+                max_tokens=2,
+            )
+            return {"valid": True, "model": self._model}
+        except Exception as exc:
+            return {"valid": False, "error": str(exc)}
 
     def _get_client(self) -> Any:
         if not self.is_configured():

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
@@ -40,10 +41,31 @@ class ConsentRequest(BaseModel):
     consent: bool
 
 
+class UpdateAIConfigRequest(BaseModel):
+    api_key: str | None = None
+    model: str | None = None
+
+
 @router.get("/api/ai/settings", response_model=AIProviderConfig)
 def get_ai_settings(request: Request) -> AIProviderConfig:
     service = get_ai_service(request)
     return service.get_config()
+
+
+@router.post("/api/ai/settings", response_model=AIProviderConfig)
+def update_ai_settings(request: Request, body: UpdateAIConfigRequest) -> AIProviderConfig:
+    service = get_ai_service(request)
+    if hasattr(service.provider, "update_config"):
+        service.provider.update_config(api_key=body.api_key, model=body.model)
+    return service.get_config()
+
+
+@router.post("/api/ai/validate")
+def validate_ai_connection(request: Request) -> dict[str, Any]:
+    service = get_ai_service(request)
+    if hasattr(service.provider, "validate_connection"):
+        return service.provider.validate_connection()
+    return {"valid": False, "error": "Provider does not support connection testing."}
 
 
 @router.post("/api/ai/consent")

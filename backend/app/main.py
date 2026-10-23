@@ -22,11 +22,13 @@ def create_app(settings: Settings) -> FastAPI:
     from app.ingestion.service import IngestionService
     from app.ai.service import SummarizationService
     from app.ai.extraction_service import ExtractionService
+    from app.ai.groq_provider import GroqProvider
 
+    shared_provider = GroqProvider()
     ingestion_service = IngestionService(settings)
     app.state.ingestion_service = ingestion_service
-    app.state.ai_service = SummarizationService(ingestion_service.repo)
-    app.state.extraction_service = ExtractionService(ingestion_service.repo)
+    app.state.ai_service = SummarizationService(ingestion_service.repo, provider=shared_provider)
+    app.state.extraction_service = ExtractionService(ingestion_service.repo, provider=shared_provider)
 
     app.add_middleware(LocalAuthMiddleware, token=settings.token, port=settings.port)
     app.include_router(health.router)

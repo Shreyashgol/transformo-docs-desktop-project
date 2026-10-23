@@ -13,7 +13,7 @@ A native macOS disk image built specifically for upload portals enforcing `< 50M
 | **File Location** | [`desktop/release/TransformoDocs-0.1.0-arm64-bootstrap.dmg`](file:///Users/shreyashgolhani/Desktop/transformo-docs-project/desktop/release/TransformoDocs-0.1.0-arm64-bootstrap.dmg) |
 | **File Size** | **`308 KB`** (0.3 MB) — *Well under 50MB cap* ✅ |
 | **Format** | Genuine Apple Disk Image (`.dmg`) |
-| **SHA-256 Checksum** | `06d54891d3d3c1f4ac8f1877f27ba9ebac7f2d3dea2157e01d6980c508224e6f` |
+| **SHA-256 Checksum** | `98c4e28cc12bd7894e7ab78fd93add1f7a214b6264011f9d7967f98275a6e00b` |
 | **How It Works** | 1. User drags `Transformo Docs.app` into `/Applications`.<br>2. On first launch, a native macOS setup dialog appears with a real-time progress bar.<br>3. It downloads the 171MB bundle, installs to `/Applications`, and launches automatically. |
 
 ---
@@ -30,7 +30,7 @@ A native macOS disk image built specifically for upload portals enforcing `< 50M
 | **Target OS / Architecture** | macOS 12+ (Apple Silicon / `arm64`) |
 | **File Name** | `TransformoDocs-0.1.0-arm64.dmg` |
 | **File Size** | `~171 MB` |
-| **SHA-256 Checksum** | `fa8e51b7a7e7d9d4d14a64b929ce1e488ce0c1dcabe31f4a6afaa34416458bdf` |
+| **SHA-256 Checksum** | `a435dbc284377838b36952430623ad023f9e9eedabac7a872bdaaa69bcc0513e` |
 
 ---
 
@@ -55,7 +55,7 @@ shasum -a 256 TransformoDocs-0.1.0-arm64.dmg
 
 Expected output:
 ```text
-fa8e51b7a7e7d9d4d14a64b929ce1e488ce0c1dcabe31f4a6afaa34416458bdf  TransformoDocs-0.1.0-arm64.dmg
+a435dbc284377838b36952430623ad023f9e9eedabac7a872bdaaa69bcc0513e  TransformoDocs-0.1.0-arm64.dmg
 ```
 
 ---

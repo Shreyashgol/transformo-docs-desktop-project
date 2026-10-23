@@ -170,6 +170,30 @@ export function registerIpcHandlers(backend, trust) {
     }
   });
 
+  handle(IPC.aiUpdateSettings, async (_event, config) => {
+    try {
+      const settings = await backend.request('/api/ai/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config || {}),
+      });
+      return { ok: true, data: settings };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  handle(IPC.aiValidate, async () => {
+    try {
+      const result = await backend.request('/api/ai/validate', {
+        method: 'POST',
+      });
+      return { ok: true, data: result };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
   // AI Consent
   handle(IPC.aiSetConsent, async (_event, consent) => {
     try {

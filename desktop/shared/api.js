@@ -18,6 +18,8 @@ export const IPC = {
   documentsDelete: 'documents:delete',
   documentsStats: 'documents:stats',
   aiGetSettings: 'ai:get-settings',
+  aiUpdateSettings: 'ai:update-settings',
+  aiValidate: 'ai:validate',
   aiSetConsent: 'ai:set-consent',
   aiGenerateSummary: 'ai:generate-summary',
   aiGetSummary: 'ai:get-summary',

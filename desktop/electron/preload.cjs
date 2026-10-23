@@ -30,6 +30,8 @@ const api = {
   },
   ai: {
     getSettings: () => invoke('ai:get-settings'),
+    updateSettings: (config) => invoke('ai:update-settings', config),
+    validate: () => invoke('ai:validate'),
     setConsent: (consent) => invoke('ai:set-consent', consent),
     generateSummary: (params) => invoke('ai:generate-summary', params),
     getSummary: (docId) => invoke('ai:get-summary', docId),
