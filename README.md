@@ -1,7 +1,7 @@
 # Transformo Docs ⚡
 
 > **Empowering Machine-Readable Document Management System**  
-> *Built for PS #95 — Transforming unstructured documents into structured, searchable, and AI-ready assets with privacy-first local architecture.*
+> * Transforming unstructured documents into structured, searchable, and AI-ready assets with privacy-first local architecture.*
 
 [![Platform](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon%20arm64)-000000?style=for-the-badge&logo=apple&logoColor=white)](https://apple.com)
 [![Electron](https://img.shields.io/badge/Electron-44.9.0-47848F?style=for-the-badge&logo=electron&logoColor=white)](https://electronjs.org)
