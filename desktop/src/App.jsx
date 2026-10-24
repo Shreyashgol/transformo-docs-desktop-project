@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AboutDialog } from './components/AboutDialog.jsx';
 import { BackendFailure } from './components/BackendFailure.jsx';
+import { OnboardingModal } from './components/OnboardingModal.jsx';
 import { Sidebar } from './components/Sidebar.jsx';
 import { Spinner } from './components/ui.jsx';
 import { useBackendStatus } from './hooks/useBackendStatus.js';
@@ -15,10 +16,11 @@ function PageContent({
   status,
   onRestart,
   onNavigate,
+  onOpenOnboarding,
 }) {
   switch (page) {
     case 'dashboard':
-      return <DashboardPage onNavigate={onNavigate} />;
+      return <DashboardPage onNavigate={onNavigate} onOpenOnboarding={onOpenOnboarding} />;
     case 'documents':
       return <DocumentsPage />;
     case 'ai-workspace':
@@ -35,6 +37,7 @@ export default function App() {
   const { status, restart } = useBackendStatus();
   const [page, setPage] = useState('dashboard');
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [appInfo, setAppInfo] = useState(null);
 
   useEffect(() => {
@@ -46,6 +49,27 @@ export default function App() {
       ignore = true;
     };
   }, []);
+
+  // Show onboarding popup on landing if:
+  // 1. Groq API key is not configured, OR
+  // 2. The user has never seen the initial onboarding tour
+  useEffect(() => {
+    if (status?.state !== 'ready') return;
+    let ignore = false;
+    window.transformo?.ai?.getSettings().then((res) => {
+      if (ignore) return;
+      const isConfigured = Boolean(res?.ok && res.data?.configured);
+      const tourShown = localStorage.getItem('transformo_onboarding_shown');
+      if (!isConfigured || !tourShown) {
+        setIsOnboardingOpen(true);
+      }
+    }).catch(() => {
+      if (!ignore) setIsOnboardingOpen(true);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, [status?.state]);
 
   // Global macOS/Desktop Keyboard Shortcuts
   useEffect(() => {
@@ -90,7 +114,15 @@ export default function App() {
   } else if (status.state === 'failed') {
     content = <BackendFailure status={status} onRetry={restart} />;
   } else {
-    content = <PageContent page={page} status={status} onRestart={restart} onNavigate={handleNavigate} />;
+    content = (
+      <PageContent
+        page={page}
+        status={status}
+        onRestart={restart}
+        onNavigate={handleNavigate}
+        onOpenOnboarding={() => setIsOnboardingOpen(true)}
+      />
+    );
   }
 
   return (
@@ -121,6 +153,18 @@ export default function App() {
         open={isAboutOpen}
         onClose={() => setIsAboutOpen(false)}
         info={appInfo}
+      />
+
+      {/* First-launch Groq API Setup Modal */}
+      <OnboardingModal
+        open={isOnboardingOpen}
+        onClose={() => {
+          setIsOnboardingOpen(false);
+          try {
+            localStorage.setItem('transformo_onboarding_shown', '1');
+          } catch {}
+        }}
+        onNavigateSettings={() => handleNavigate('settings')}
       />
     </div>
   );

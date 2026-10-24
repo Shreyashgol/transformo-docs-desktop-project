@@ -5,6 +5,7 @@ import {
   Database,
   FileSpreadsheet,
   FileText,
+  KeyRound,
   Search,
   Sparkles,
   Upload,
@@ -21,7 +22,7 @@ function formatBytes(bytes) {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-export function DashboardPage({ onNavigate }) {
+export function DashboardPage({ onNavigate, onOpenOnboarding }) {
   const [stats, setStats] = useState({
     total_documents: 0,
     scanned_documents: 0,
@@ -38,15 +39,18 @@ export function DashboardPage({ onNavigate }) {
   const [importing, setImporting] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState(true);
 
   const refreshData = useCallback(async () => {
     try {
-      const [statsRes, listRes] = await Promise.all([
+      const [statsRes, listRes, aiRes] = await Promise.all([
         window.transformo.documents.stats(),
         window.transformo.documents.list({ page: 1, page_size: 6, sort_by: 'created_at', sort_order: 'desc' }),
+        window.transformo.ai?.getSettings().catch(() => null),
       ]);
       if (statsRes.ok) setStats(statsRes.data);
       if (listRes.ok) setRecentDocs(listRes.data.items.map((i) => i.metadata));
+      if (aiRes?.ok) setAiConfigured(Boolean(aiRes.data?.configured));
     } catch {
       // ignore
     } finally {
@@ -59,10 +63,12 @@ export function DashboardPage({ onNavigate }) {
     Promise.all([
       window.transformo.documents.stats(),
       window.transformo.documents.list({ page: 1, page_size: 6, sort_by: 'created_at', sort_order: 'desc' }),
-    ]).then(([statsRes, listRes]) => {
+      window.transformo.ai?.getSettings().catch(() => null),
+    ]).then(([statsRes, listRes, aiRes]) => {
       if (!ignore) {
         if (statsRes.ok) setStats(statsRes.data);
         if (listRes.ok) setRecentDocs(listRes.data.items.map((i) => i.metadata));
+        if (aiRes?.ok) setAiConfigured(Boolean(aiRes.data?.configured));
         setLoading(false);
       }
     }).catch(() => {
@@ -143,6 +149,13 @@ export function DashboardPage({ onNavigate }) {
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
+            onClick={onOpenOnboarding}
+            icon={<Sparkles size={14} className="text-accent" />}
+          >
+            AI Setup Guide
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => onNavigate?.('documents')}
             icon={<Search size={14} />}
           >
@@ -158,6 +171,43 @@ export function DashboardPage({ onNavigate }) {
           </Button>
         </div>
       </header>
+
+      {/* Unconfigured Groq API Key Callout Banner */}
+      {!aiConfigured && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-accent/40 bg-accent-soft/25 p-5 shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-md shrink-0">
+              <Sparkles size={22} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-ink">Unlock AI Summarization & Smart Extraction</p>
+                <Badge tone="warning" className="text-[10px]">Action Required</Badge>
+              </div>
+              <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                Transformo Docs requires a free Groq API key to analyze your ingested documents.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => onNavigate?.('settings')}
+              className="!text-xs"
+            >
+              Go to Settings
+            </Button>
+            <Button
+              variant="primary"
+              onClick={onOpenOnboarding}
+              icon={<ArrowRight size={14} />}
+              className="!text-xs"
+            >
+              Set Up Groq API
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Primary KPI Metrics */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
