@@ -1,6 +1,7 @@
 appId: com.transformo.docs
 productName: Transformo Docs
 copyright: Copyright © 2026 Transformo Docs
+afterPack: scripts/after-pack.js
 
 # ── Files to include in the app bundle ────────────────────────────────────────
 files:

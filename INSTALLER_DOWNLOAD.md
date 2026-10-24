@@ -1,6 +1,6 @@
 # Transformo Docs — macOS Installer Options
 
-For portals with strict **50MB upload limits** that require `.dmg` files, a **lightweight native bootstrap DMG (308 KB)** is ready for direct upload. The full standalone offline installer is also hosted on Google Drive.
+For portals with strict **50MB upload limits** that require `.dmg` files, a **lightweight native bootstrap DMG (308 KB)** is ready for direct upload. The full standalone offline installer is also available directly and via Google Drive.
 
 ---
 
@@ -13,8 +13,8 @@ A native macOS disk image built specifically for upload portals enforcing `< 50M
 | **File Location** | [`desktop/release/TransformoDocs-0.1.0-arm64-bootstrap.dmg`](file:///Users/shreyashgolhani/Desktop/transformo-docs-project/desktop/release/TransformoDocs-0.1.0-arm64-bootstrap.dmg) |
 | **File Size** | **`308 KB`** (0.3 MB) — *Well under 50MB cap* ✅ |
 | **Format** | Genuine Apple Disk Image (`.dmg`) |
-| **SHA-256 Checksum** | `98c4e28cc12bd7894e7ab78fd93add1f7a214b6264011f9d7967f98275a6e00b` |
-| **How It Works** | 1. User drags `Transformo Docs.app` into `/Applications`.<br>2. On first launch, a native macOS setup dialog appears with a real-time progress bar.<br>3. It downloads the 171MB bundle, installs to `/Applications`, and launches automatically. |
+| **SHA-256 Checksum** | `5a1ffa4e2d8ea44f60920e8080cbaf0ba9706bea5bf586ff6b0bcb1086edf622` |
+| **How It Works** | 1. Open disk image and double-click `Transformo Docs.app`.<br>2. A native macOS installer window displays live download progress.<br>3. It downloads the full 170MB bundle, installs to `/Applications`, strips quarantine attributes, and launches automatically. |
 
 ---
 
@@ -28,52 +28,52 @@ A native macOS disk image built specifically for upload portals enforcing `< 50M
 | **Application** | Transformo Docs |
 | **Version** | `0.1.0` |
 | **Target OS / Architecture** | macOS 12+ (Apple Silicon / `arm64`) |
-| **File Name** | `TransformoDocs-0.1.0-arm64.dmg` |
-| **File Size** | `~171 MB` |
-| **SHA-256 Checksum** | `a435dbc284377838b36952430623ad023f9e9eedabac7a872bdaaa69bcc0513e` |
+| **Local File Location** | [`desktop/release/TransformoDocs-0.1.0-arm64.dmg`](file:///Users/shreyashgolhani/Desktop/transformo-docs-project/desktop/release/TransformoDocs-0.1.0-arm64.dmg) |
+| **File Size** | `~170 MB` |
+| **SHA-256 Checksum** | `c8cb957e81a73d7bc50a8fbc139464ad4b6daf4deb9f37a86b751f6c26d882de` |
 
 ---
 
-### Quick Installation Steps
+### Why macOS Says “Damaged and can't be opened” & How to Fix It
 
-1. **Download:** Click the link above to download `TransformoDocs-0.1.0-arm64.dmg`.
-2. **Mount & Install:** Double-click the `.dmg` file and drag **Transformo Docs** into your **Applications** folder.
-3. **First Launch (macOS Gatekeeper):**
-   * If macOS prompts that the developer cannot be verified, **Right-click (Control-click)** `Transformo Docs.app` in `/Applications` and select **Open**.
-   * Click **Open** on the confirmation dialog.
-4. **Self-Contained Backend:** The Python/FastAPI backend starts automatically on launch — no manual terminal or Python setup required.
+If you download the `.dmg` from the internet (Google Drive / web browser) and macOS shows:
+> **“Transformo Docs” is damaged and can’t be opened. You should eject the disk image.**
 
----
+#### Why this happens on macOS:
+1. **Web Quarantine:** Whenever a file is downloaded from the internet, macOS automatically attaches the `com.apple.quarantine` security attribute to it.
+2. **Gatekeeper:** Because Transformo Docs is an open-source / student project built without an Apple Developer ID certificate ($99/yr Apple Developer Program subscription), macOS Gatekeeper flags the web-downloaded bundle as "damaged" instead of allowing unsigned execution.
 
-### Verify Integrity (Optional)
+#### 1-Second Fix:
+Simply clear the quarantine attribute using Terminal:
 
-You can verify the file integrity in the macOS Terminal:
+* **If installed in `/Applications`:**
+  ```bash
+  xattr -cr /Applications/Transformo\ Docs.app
+  ```
 
-```bash
-shasum -a 256 TransformoDocs-0.1.0-arm64.dmg
-```
+* **Or on the downloaded `.dmg` in your Downloads folder:**
+  ```bash
+  xattr -d com.apple.quarantine ~/Downloads/TransformoDocs-0.1.0-arm64.dmg
+  ```
 
-Expected output:
-```text
-a435dbc284377838b36952430623ad023f9e9eedabac7a872bdaaa69bcc0513e  TransformoDocs-0.1.0-arm64.dmg
-```
+Once run, `Transformo Docs` will launch instantly without any prompts or warnings.
 
 ---
 
 ### Alternative: Multi-Part Split Archive (< 50MB per file)
 
-If you prefer or need files under the **50MB upload limit**, the DMG is split into 4 parts inside [`desktop/release/split_parts/`](file:///Users/shreyashgolhani/Desktop/transformo-docs-project/desktop/release/split_parts/):
+If you need individual files under the **50MB upload limit**, the full DMG is also split into 4 parts in [`desktop/release/split_parts/`](file:///Users/shreyashgolhani/Desktop/transformo-docs-project/desktop/release/split_parts/):
 
 | Split Part | Size | Status |
 | :--- | :--- | :--- |
 | `TransformoDocs-0.1.0-arm64.dmg.part-aa` | `45 MB` | `< 50 MB` ✅ |
 | `TransformoDocs-0.1.0-arm64.dmg.part-ab` | `45 MB` | `< 50 MB` ✅ |
 | `TransformoDocs-0.1.0-arm64.dmg.part-ac` | `45 MB` | `< 50 MB` ✅ |
-| `TransformoDocs-0.1.0-arm64.dmg.part-ad` | `36 MB` | `< 50 MB` ✅ |
+| `TransformoDocs-0.1.0-arm64.dmg.part-ad` | `35 MB` | `< 50 MB` ✅ |
 
 #### To Recombine into the full DMG:
 
-**Method 1 (Automated):** Run the included script:
+**Method 1 (Automated):**
 ```bash
 ./desktop/release/split_parts/recombine.sh
 ```
@@ -82,4 +82,3 @@ If you prefer or need files under the **50MB upload limit**, the DMG is split in
 ```bash
 cat desktop/release/split_parts/TransformoDocs-0.1.0-arm64.dmg.part-* > TransformoDocs-0.1.0-arm64.dmg
 ```
-

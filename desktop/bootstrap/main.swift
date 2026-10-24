@@ -82,6 +82,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
     func startDownload() {
         let config = URLSessionConfiguration.default
         config.httpCookieStorage = HTTPCookieStorage.shared
+        config.timeoutIntervalForRequest = 60.0
+        config.timeoutIntervalForResource = 600.0
         downloadSession = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
 
         let initialUrl = URL(string: "https://drive.google.com/uc?export=download&id=\(fileId)")!
@@ -96,15 +98,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
             }
 
             guard let data = data, let html = String(data: data, encoding: .utf8) else {
-                self.showError("Could not retrieve setup data from server.")
+                self.beginDirectDownload(url: initialUrl)
                 return
             }
 
-            let pattern = "name=\"uuid\"\\s+value=\"([^\"]+)\""
-            if let regex = try? NSRegularExpression(pattern: pattern),
-               let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
-               let range = Range(match.range(at: 1), in: html) {
-                let uuid = String(html[range])
+            // Google Drive displays a virus scan warning for files > 100MB with a form containing a uuid token
+            let patterns = [
+                "name=\"uuid\"\\s+value=\"([^\"]+)\"",
+                "value=\"([^\"]+)\"\\s+name=\"uuid\"",
+                "\"uuid\"\\s*:\\s*\"([^\"]+)\""
+            ]
+            var foundUuid: String? = nil
+            for pattern in patterns {
+                if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+                   let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+                   let range = Range(match.range(at: 1), in: html) {
+                    foundUuid = String(html[range])
+                    break
+                }
+            }
+
+            if let uuid = foundUuid {
                 let finalUrl = URL(string: "https://drive.usercontent.google.com/download?id=\(self.fileId)&export=download&confirm=t&uuid=\(uuid)")!
                 self.beginDirectDownload(url: finalUrl)
             } else {
@@ -137,6 +151,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
     }
 
     func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        // Crucial: URLSession deletes the file at `location` as soon as this callback returns.
+        // We MUST synchronously move it to a persistent destination before leaving this scope.
+        let targetDmg = URL(fileURLWithPath: "/tmp/TransformoDocs-download.dmg")
+        try? FileManager.default.removeItem(at: targetDmg)
+
+        do {
+            try FileManager.default.moveItem(at: location, to: targetDmg)
+        } catch {
+            DispatchQueue.main.async {
+                self.showError("Failed to save downloaded package: \(error.localizedDescription)")
+            }
+            return
+        }
+
         DispatchQueue.main.async {
             self.progressIndicator.isIndeterminate = true
             self.progressIndicator.startAnimation(nil)
@@ -144,7 +172,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
         }
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.installAndLaunch(from: location)
+            self?.installAndLaunch(dmgUrl: targetDmg)
         }
     }
 
@@ -156,12 +184,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
         }
     }
 
-    func installAndLaunch(from tempUrl: URL) {
-        let targetDmg = "/tmp/TransformoDocs-download.dmg"
+    func installAndLaunch(dmgUrl: URL) {
+        let targetDmg = dmgUrl.path
         let mountPoint = "/tmp/TransformoDocs_Mount_\(ProcessInfo.processInfo.processIdentifier)"
-
-        try? FileManager.default.removeItem(atPath: targetDmg)
-        try? FileManager.default.moveItem(atPath: tempUrl.path, toPath: targetDmg)
 
         _ = runCommand("/usr/bin/hdiutil", ["detach", mountPoint, "-force"])
         try? FileManager.default.createDirectory(atPath: mountPoint, withIntermediateDirectories: true)
@@ -190,6 +215,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
             launchedPath = fallbackDest
         }
 
+        // Clean up mount point and temporary DMG
         _ = runCommand("/usr/bin/hdiutil", ["detach", mountPoint, "-force"])
         try? FileManager.default.removeItem(atPath: targetDmg)
 
@@ -197,6 +223,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, URLSessionDownloadDelegate {
             showError("Failed to install application. Please check write permissions.")
             return
         }
+
+        // Remove quarantine attribute so Gatekeeper allows opening without security warnings
+        _ = runCommand("/usr/bin/xattr", ["-rd", "com.apple.quarantine", launchedPath])
 
         // Open newly installed application
         _ = runCommand("/usr/bin/open", ["-a", launchedPath])
